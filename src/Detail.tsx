@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, Dimensions } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  Dimensions,
+  FlatList,
+  TouchableOpacity,
+  processColor,
+} from 'react-native';
 import { LineChart } from 'react-native-charts-wrapper';
 
 interface PriceData {
@@ -9,13 +17,17 @@ interface PriceData {
   };
 }
 
+interface VegetableItem {
+  name: string;
+  isExpanded: boolean;
+}
+
 const { height: screenHeight } = Dimensions.get('window');
 
 const PriceTrendChart: React.FC = () => {
-  const [chartData, setChartData] = useState<any>(null);
+  const [priceData, setPriceData] = useState<PriceData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedVegetable, setSelectedVegetable] = useState<string>('');
-  const [vegetables, setVegetables] = useState<string[]>([]);
+  const [vegetables, setVegetables] = useState<VegetableItem[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -34,42 +46,37 @@ const PriceTrendChart: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const text = await response.text();
-      console.log('Raw response:', text);  // ログ出力を追加
+      const json: PriceData = await response.json();
+      setPriceData(json);
 
-      const json: PriceData = JSON.parse(text);
-      console.log('Parsed data:', json);  // ログ出力を追加
-
-      const vegList = Object.keys(json);
+      const vegList = Object.keys(json).map(veg => ({ name: veg, isExpanded: false }));
       setVegetables(vegList);
-      setSelectedVegetable(vegList[0]);
-      processData(json, vegList[0]);
     } catch (error) {
       console.error('Error fetching or parsing data: ', error);
       setError(error instanceof Error ? error.message : String(error));
     }
   };
 
-  const processData = (data: PriceData, vegetable: string) => {
-    const vegData = data[vegetable];
+  const processData = (vegetable: string) => {
+    if (!priceData) return null;
+
+    const vegData = priceData[vegetable];
     const values = Object.entries(vegData).map(([date, price]) => ({
       x: convertDate(date),
       y: price
     }));
 
-    console.log('Processed values:', values);  // ログ出力を追加
-
-    setChartData({
+    return {
       dataSets: [{
         values: values,
         label: vegetable,
         config: {
-          color: 'blue',
+          color: processColor('blue'),
           drawCircles: false,
           lineWidth: 2,
         },
       }],
-    });
+    };
   };
 
   const convertDate = (date: string): number => {
@@ -77,48 +84,29 @@ const PriceTrendChart: React.FC = () => {
     const [monthPart, _] = month.split('_');
     const monthNum = parseInt(monthPart, 10);
     if (isNaN(monthNum)) {
-      console.error('Invalid month:', month);  // エラーログを追加
-      return 0;  // エラーの場合は0を返す
+      console.error('Invalid month:', month);
+      return 0;
     }
     return new Date(`20${year}-${monthNum.toString().padStart(2, '0')}-01`).getTime();
   };
 
-  const handleVegetableChange = (itemValue: string) => {
-    setSelectedVegetable(itemValue);
-    if (chartData && chartData.rawData) {
-      processData(chartData.rawData, itemValue);
-    }
+  const toggleExpand = (index: number) => {
+    const updatedVegetables = vegetables.map((item, idx) => 
+      idx === index ? { ...item, isExpanded: !item.isExpanded } : item
+    );
+    setVegetables(updatedVegetables);
   };
 
-  if (error) {
-    return <Text>Error: {error}</Text>;
-  }
-
-  if (!chartData) {
-    return <Text>Loading...</Text>;
-  }
-
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.contentContainer}>
-          <Text style={styles.title}>農産物価格トレンド</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={selectedVegetable}
-              onValueChange={handleVegetableChange}
-              style={styles.picker}
-            >
-              {vegetables.map((veg) => (
-                <Picker.Item key={veg} label={veg} value={veg} />
-              ))}
-            </Picker>
-          </View>
-        </View>
+  const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => (
+    <View style={styles.itemContainer}>
+      <TouchableOpacity onPress={() => toggleExpand(index)} style={styles.itemHeader}>
+        <Text style={styles.itemTitle}>{item.name}</Text>
+      </TouchableOpacity>
+      {item.isExpanded && (
         <View style={styles.chartContainer}>
           <LineChart
             style={styles.chart}
-            data={chartData}
+            data={processData(item.name)}
             xAxis={{
               valueFormatter: 'date',
               valueFormatterPattern: 'yyyy/MM',
@@ -162,6 +150,27 @@ const PriceTrendChart: React.FC = () => {
             dragDecelerationFrictionCoef={0.99}
           />
         </View>
+      )}
+    </View>
+  );
+
+  if (error) {
+    return <Text>Error: {error}</Text>;
+  }
+
+  if (!priceData) {
+    return <Text>Loading...</Text>;
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Text style={styles.title}>農産物価格トレンド</Text>
+        <FlatList
+          data={vegetables}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.name}
+        />
       </View>
     </SafeAreaView>
   );
@@ -174,11 +183,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    justifyContent: 'space-between',
     padding: 10,
-  },
-  contentContainer: {
-    marginBottom: 20,
   },
   title: {
     fontSize: 18,
@@ -186,17 +191,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
   },
-  pickerContainer: {
+  itemContainer: {
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
   },
-  picker: {
-    height: 50,
+  itemHeader: {
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   chartContainer: {
-    height: screenHeight * 0.5, // 画面の高さの50%
-    marginTop: 20,
+    height: screenHeight * 0.4,
+    padding: 10,
   },
   chart: {
     flex: 1,
