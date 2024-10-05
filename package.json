@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^14.0.4",
     "@react-native-picker/picker": "2.7.5",
     "@types/react": "~18.2.79",
     "expo": "~51.0.28",
