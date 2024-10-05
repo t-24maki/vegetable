@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   processColor,
 } from 'react-native';
-import { LineChart } from 'react-native-charts-wrapper';
+import {  Marker,LineChart } from 'react-native-charts-wrapper';
 
 interface PriceData {
   [key: string]: {
@@ -28,6 +28,8 @@ const PriceTrendChart: React.FC = () => {
   const [priceData, setPriceData] = useState<PriceData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [vegetables, setVegetables] = useState<VegetableItem[]>([]);
+  const [selectedPoint, setSelectedPoint] = useState<{ x: number; y: number } | null>(null);
+  const chartRef = useRef(null);
 
   useEffect(() => {
     fetchData();
@@ -61,10 +63,12 @@ const PriceTrendChart: React.FC = () => {
     if (!priceData) return null;
 
     const vegData = priceData[vegetable];
-    const values = Object.entries(vegData).map(([date, price]) => ({
-      x: convertDate(date),
-      y: price
-    }));
+    const values = Object.entries(vegData)
+      .map(([date, price]) => ({
+        x: convertDate(date),
+        y: price
+      }))
+      .sort((a, b) => a.x - b.x);
 
     return {
       dataSets: [{
@@ -72,8 +76,11 @@ const PriceTrendChart: React.FC = () => {
         label: vegetable,
         config: {
           color: processColor('blue'),
+          drawValues: false,
           drawCircles: false,
           lineWidth: 2,
+          drawHighlightIndicators: true,
+          highlightColor: processColor('red'),
         },
       }],
     };
@@ -81,13 +88,15 @@ const PriceTrendChart: React.FC = () => {
 
   const convertDate = (date: string): number => {
     const [year, month] = date.split('/');
-    const [monthPart, _] = month.split('_');
+    const [monthPart, period] = month.split('_');
     const monthNum = parseInt(monthPart, 10);
-    if (isNaN(monthNum)) {
-      console.error('Invalid month:', month);
-      return 0;
+    let dayOffset = 0;
+    switch (period) {
+      case '上': dayOffset = 5; break;
+      case '中': dayOffset = 15; break;
+      case '下': dayOffset = 25; break;
     }
-    return new Date(`20${year}-${monthNum.toString().padStart(2, '0')}-01`).getTime();
+    return new Date(`20${year}-${monthNum.toString().padStart(2, '0')}-${dayOffset.toString().padStart(2, '0')}`).getTime();
   };
 
   const toggleExpand = (index: number) => {
@@ -97,6 +106,24 @@ const PriceTrendChart: React.FC = () => {
     setVegetables(updatedVegetables);
   };
 
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return `${date.getFullYear()}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+  };
+
+  const handleSelect = (event) => {
+    const { nativeEvent } = event;
+    console.log('Select event:', nativeEvent);
+    if (nativeEvent && nativeEvent.data) {
+      const { x, y } = nativeEvent.data;
+      console.log('Selected point:', { x, y });
+      setSelectedPoint({ x, y });
+    } else {
+      console.log('No data in select event');
+      setSelectedPoint(null);
+    }
+  };
+  
   const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => (
     <View style={styles.itemContainer}>
       <TouchableOpacity onPress={() => toggleExpand(index)} style={styles.itemHeader}>
@@ -122,23 +149,8 @@ const PriceTrendChart: React.FC = () => {
                 enabled: false,
               },
             }}
-            legend={{
-              enabled: true,
-              textSize: 12,
-              form: 'SQUARE',
-              formSize: 14,
-              xEntrySpace: 10,
-              yEntrySpace: 5,
-              wordWrapEnabled: true,
-            }}
+            legend={{ enabled: false }}
             chartDescription={{ text: '' }}
-            animation={{
-              durationX: 0,
-              durationY: 1500,
-              easingY: 'EaseInOutQuart',
-            }}
-            drawGridBackground={false}
-            drawBorders={false}
             touchEnabled={true}
             dragEnabled={true}
             scaleEnabled={true}
@@ -146,9 +158,21 @@ const PriceTrendChart: React.FC = () => {
             scaleYEnabled={true}
             pinchZoom={true}
             doubleTapToZoomEnabled={true}
-            dragDecelerationEnabled={true}
-            dragDecelerationFrictionCoef={0.99}
+            highlightPerTapEnabled={true}
+            highlightPerDragEnabled={false}
+            onSelect={handleSelect}
+            ref={chartRef}
+            onChange={(event) => console.log('Chart changed:', event.nativeEvent)}
+            onTouchStart={() => console.log('Touch started')}
+            onTouchMove={() => console.log('Touch moved')}
+            onTouchEnd={() => console.log('Touch ended')}
           />
+          {selectedPoint && (
+            <View style={[styles.markerContainer, { position: 'absolute', left: 10, top: 10 }]}>
+              <Text style={styles.markerText}>{formatDate(selectedPoint.x)}</Text>
+              <Text style={styles.markerText}>¥{Math.round(selectedPoint.y)}</Text>
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -177,6 +201,18 @@ const PriceTrendChart: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  markerContainer: {
+    backgroundColor: 'white',
+    padding: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    position: 'absolute',
+  },
+  markerText: {
+    color: 'black',
+    fontSize: 12,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#F5FCFF',
