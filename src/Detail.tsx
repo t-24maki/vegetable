@@ -9,7 +9,10 @@ import {
   TouchableOpacity,
   StatusBar,
   Image, 
-  ImageSourcePropType
+  ImageSourcePropType,
+  Modal,
+  FlatList as ModalFlatList,
+  ListRenderItem
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import SVGLineChart from './SVGLineChart';
@@ -77,16 +80,24 @@ const RateDisplay: React.FC<{ rate?: number }> = ({ rate }) => {
 };
 
 
+type SortOption = '50音順' | '先月比' | '昨年比';
+
 const PriceTrendChart: React.FC = () => {
   const [priceData, setPriceData] = useState<PriceData | null>(null);
   const [rateData, setRateData] = useState<RateData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [vegetables, setVegetables] = useState<VegetableItem[]>([]);
+  const [sortOption, setSortOption] = useState<SortOption>('50音順');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showSortModal, setShowSortModal] = useState(false);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    sortVegetables();
+  }, [sortOption, sortOrder]);
 
   const fetchData = async () => {
     try {
@@ -163,19 +174,38 @@ const PriceTrendChart: React.FC = () => {
 
   const toggleSortOrder = () => {
     setSortOrder(prevOrder => prevOrder === 'asc' ? 'desc' : 'asc');
-    sortVegetables();
   };
 
   const sortVegetables = () => {
     const sorted = [...vegetables].sort((a, b) => {
-      if (sortOrder === 'asc') {
-        return a.name.localeCompare(b.name, 'ja');
-      } else {
-        return b.name.localeCompare(a.name, 'ja');
+      let comparison = 0;
+      switch (sortOption) {
+        case '50音順':
+          comparison = a.name.localeCompare(b.name, 'ja');
+          break;
+        case '先月比':
+          comparison = (b.lastMonthRate || 0) - (a.lastMonthRate || 0);
+          break;
+        case '昨年比':
+          comparison = (b.lastYearRate || 0) - (a.lastYearRate || 0);
+          break;
       }
+      return sortOrder === 'asc' ? comparison : -comparison;
     });
     setVegetables(sorted);
   };
+
+  const renderSortOption: ListRenderItem<SortOption> = ({ item }) => (
+    <TouchableOpacity
+      style={styles.sortOptionItem}
+      onPress={() => {
+        setSortOption(item);
+        setShowSortModal(false);
+      }}
+    >
+      <Text style={styles.sortOptionText}>{item}</Text>
+    </TouchableOpacity>
+  );
 
   const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => (
     <View style={styles.itemContainer}>
@@ -229,9 +259,9 @@ const PriceTrendChart: React.FC = () => {
       <StatusBar barStyle="dark-content" />
       <View style={styles.container}>
         <Text style={styles.title}>農産物価格トレンド</Text>
-        <TouchableOpacity onPress={toggleSortOrder} style={styles.sortButton}>
+        <TouchableOpacity onPress={() => setShowSortModal(true)} style={styles.sortButton}>
           <Text style={styles.sortButtonText}>
-            50音順 {sortOrder === 'asc' ? '▲' : '▼'}
+            {sortOption} {sortOrder === 'asc' ? '▲' : '▼'}
           </Text>
         </TouchableOpacity>
         <RateHeader />
@@ -242,11 +272,71 @@ const PriceTrendChart: React.FC = () => {
           contentContainerStyle={styles.listContainer}
         />
       </View>
+      <Modal
+        visible={showSortModal}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>並び替え方法を選択</Text>
+            <ModalFlatList
+              data={['50音順', '先月比', '昨年比'] as SortOption[]}
+              renderItem={renderSortOption}
+              keyExtractor={(item) => item}
+            />
+            <TouchableOpacity
+              style={styles.closeModalButton}
+              onPress={() => setShowSortModal(false)}
+            >
+              <Text style={styles.closeModalButtonText}>キャンセル</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 16,
+    width: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  sortOptionItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  sortOptionText: {
+    fontSize: 16,
+  },
+  closeModalButton: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+  },
+  closeModalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
   rateHeaderContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
