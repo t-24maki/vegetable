@@ -8,6 +8,8 @@ import {
   FlatList,
   TouchableOpacity,
   StatusBar,
+  Image, 
+  ImageSourcePropType
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import SVGLineChart from './SVGLineChart';
@@ -18,18 +20,74 @@ interface PriceData {
   };
 }
 
+interface RateData {
+  [key: string]: {
+    "先月との比": number;
+    "例年9月との比": number;
+  };
+}
+
 interface VegetableItem {
   name: string;
   isExpanded: boolean;
+  lastMonthRate?: number;
+  lastYearRate?: number;
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+const arrowUp = require('../assets/arrow-up.png');
+const arrowUpMiddle = require('../assets/arrow-upmiddle.png');
+const arrowMiddle = require('../assets/arrow-middle.png');
+const arrowDownMiddle = require('../assets/arrow-downmiddle.png');
+const arrowDown = require('../assets/arrow-down.png');
+
+const getTrendArrow = (rate: number): ImageSourcePropType => {
+  if (rate > 1.5) return arrowUp;
+  if (rate > 1.2) return arrowUpMiddle;
+  if (rate > 0.8) return arrowMiddle;
+  if (rate > 0.5) return arrowDownMiddle;
+  return arrowDown;
+};
+
+
+const RateHeader: React.FC = () => (
+  <View style={styles.rateHeaderContainer}>
+    <View style={styles.rateHeaderColumn}>
+      <Text style={styles.rateHeaderLabel}>先月比</Text>
+    </View>
+    <View style={styles.rateHeaderColumn}>
+      <Text style={styles.rateHeaderLabel}>昨年比</Text>
+    </View>
+  </View>
+);
+
+const RateDisplay: React.FC<{ rate?: number }> = ({ rate }) => {
+  const image = rate ? getTrendArrow(rate) : arrowMiddle;
+  
+  return (
+    <View style={styles.rateColumn}>
+      <View style={styles.rateValueContainer}>
+        <Image source={image} style={styles.trendArrow} />
+        <Text style={styles.rateValue}>
+          {rate ? (rate * 100).toFixed(1) + '%' : 'N/A'}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+type SortOption = '50音順' | '先月比' | '昨年比';
+type SortOrder = 'asc' | 'desc';
+
+
 const PriceTrendChart: React.FC = () => {
   const [priceData, setPriceData] = useState<PriceData | null>(null);
+  const [rateData, setRateData] = useState<RateData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [vegetables, setVegetables] = useState<VegetableItem[]>([]);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortOption, setSortOption] = useState<SortOption>('50音順');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   useEffect(() => {
     fetchData();
@@ -37,27 +95,44 @@ const PriceTrendChart: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('https://analysis-navi.com/vegetable/trend.json', {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'React-Native-App'
-        },
-      });
+      const [priceResponse, rateResponse] = await Promise.all([
+        fetch('https://analysis-navi.com/vegetable/trend.json', {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'React-Native-App'
+          },
+        }),
+        fetch('https://analysis-navi.com/vegetable/rate.json', {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'React-Native-App'
+          },
+        })
+      ]);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!priceResponse.ok || !rateResponse.ok) {
+        throw new Error(`HTTP error! status: ${priceResponse.status}, ${rateResponse.status}`);
       }
 
-      const json: PriceData = await response.json();
-      setPriceData(json);
+      const priceJson: PriceData = await priceResponse.json();
+      const rateJson: RateData = await rateResponse.json();
 
-      const vegList = Object.keys(json).map(veg => ({ name: veg, isExpanded: false }));
+      setPriceData(priceJson);
+      setRateData(rateJson);
+
+      const vegList = Object.keys(priceJson).map(veg => ({
+        name: veg,
+        isExpanded: false,
+        lastMonthRate: rateJson[veg]?.["先月との比"],
+        lastYearRate: rateJson[veg]?.["例年9月との比"]
+      }));
       setVegetables(vegList);
     } catch (error) {
       console.error('Error fetching or parsing data: ', error);
       setError(error instanceof Error ? error.message : String(error));
     }
   };
+
 
   const processData = (vegetable: string) => {
     if (!priceData) return [];
@@ -98,19 +173,45 @@ const PriceTrendChart: React.FC = () => {
 
   const sortVegetables = () => {
     const sorted = [...vegetables].sort((a, b) => {
-      if (sortOrder === 'asc') {
-        return a.name.localeCompare(b.name, 'ja');
-      } else {
-        return b.name.localeCompare(a.name, 'ja');
+      let comparison = 0;
+      switch (sortOption) {
+        case '50音順':
+          comparison = a.name.localeCompare(b.name, 'ja');
+          break;
+        case '先月比':
+          comparison = (a.lastMonthRate ?? 0) - (b.lastMonthRate ?? 0);
+          break;
+        case '昨年比':
+          comparison = (a.lastYearRate ?? 0) - (b.lastYearRate ?? 0);
+          break;
       }
+      return sortOrder === 'asc' ? comparison : -comparison;
     });
     setVegetables(sorted);
   };
 
+  const toggleSort = (option: SortOption) => {
+    if (sortOption === option) {
+      setSortOrder(prevOrder => prevOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortOption(option);
+      setSortOrder('asc');
+    }
+  };
+
+  
+
+
   const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => (
     <View style={styles.itemContainer}>
       <TouchableOpacity onPress={() => toggleExpand(index)} style={styles.itemHeader}>
-        <Text style={styles.itemTitle}>{item.name}</Text>
+        <View style={styles.itemTitleContainer}>
+          <Text style={styles.itemTitle}>{item.name}</Text>
+        </View>
+        <View style={styles.ratesContainer}>
+          <RateDisplay rate={item.lastMonthRate} />
+          <RateDisplay rate={item.lastYearRate} />
+        </View>
         <Ionicons
           name={item.isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
           size={24}
@@ -158,6 +259,7 @@ const PriceTrendChart: React.FC = () => {
             50音順 {sortOrder === 'asc' ? '▲' : '▼'}
           </Text>
         </TouchableOpacity>
+        <RateHeader />
         <FlatList
           data={vegetables}
           renderItem={renderItem}
@@ -170,6 +272,75 @@ const PriceTrendChart: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  rateHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingRight: 50, // Ioniconsのスペースを考慮
+    marginBottom: 8,
+    marginRight: 10, // 右端の余白を追加
+  },
+  rateHeaderColumn: {
+    width: 80,
+    alignItems: 'center',
+  },
+  rateHeaderLabel: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: 'bold',
+  },
+  ratesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flex: 1,
+    marginRight: 10,
+  },
+  rateColumn: {
+    alignItems: 'center',
+    width: 80,
+    marginHorizontal: 5,
+  },
+  rateValueContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: 40,
+  },
+  rateValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333333',
+    zIndex: 2,
+  },
+  trendArrow: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    opacity: 0.8,
+    zIndex: 1,
+    resizeMode: 'contain',
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  itemTitleContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: '400',
+    color: '#333333',
+  },
+  rateText: {
+    fontSize: 12,
+    color: '#666666',
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -210,18 +381,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  itemTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333333',
   },
   chartContainer: {
     padding: 16,
