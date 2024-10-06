@@ -50,7 +50,6 @@ const getTrendArrow = (rate: number): ImageSourcePropType => {
   return arrowDown;
 };
 
-
 const RateHeader: React.FC = () => (
   <View style={styles.rateHeaderContainer}>
     <View style={styles.rateHeaderColumn}>
@@ -77,17 +76,13 @@ const RateDisplay: React.FC<{ rate?: number }> = ({ rate }) => {
   );
 };
 
-type SortOption = '50音順' | '先月比' | '昨年比';
-type SortOrder = 'asc' | 'desc';
-
 
 const PriceTrendChart: React.FC = () => {
   const [priceData, setPriceData] = useState<PriceData | null>(null);
   const [rateData, setRateData] = useState<RateData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [vegetables, setVegetables] = useState<VegetableItem[]>([]);
-  const [sortOption, setSortOption] = useState<SortOption>('50音順');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     fetchData();
@@ -173,34 +168,14 @@ const PriceTrendChart: React.FC = () => {
 
   const sortVegetables = () => {
     const sorted = [...vegetables].sort((a, b) => {
-      let comparison = 0;
-      switch (sortOption) {
-        case '50音順':
-          comparison = a.name.localeCompare(b.name, 'ja');
-          break;
-        case '先月比':
-          comparison = (a.lastMonthRate ?? 0) - (b.lastMonthRate ?? 0);
-          break;
-        case '昨年比':
-          comparison = (a.lastYearRate ?? 0) - (b.lastYearRate ?? 0);
-          break;
+      if (sortOrder === 'asc') {
+        return a.name.localeCompare(b.name, 'ja');
+      } else {
+        return b.name.localeCompare(a.name, 'ja');
       }
-      return sortOrder === 'asc' ? comparison : -comparison;
     });
     setVegetables(sorted);
   };
-
-  const toggleSort = (option: SortOption) => {
-    if (sortOption === option) {
-      setSortOrder(prevOrder => prevOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortOption(option);
-      setSortOrder('asc');
-    }
-  };
-
-  
-
 
   const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => (
     <View style={styles.itemContainer}>
@@ -327,6 +302,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     backgroundColor: '#FFFFFF',
+  },
+  rateLabel: {
+    fontSize: 12,
+    color: '#666666',
+    marginBottom: 4,
   },
   itemTitleContainer: {
     flex: 1,
