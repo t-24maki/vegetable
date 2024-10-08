@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   SafeAreaView,
   Dimensions,
   FlatList,
+  StyleSheet,
   TouchableOpacity,
   StatusBar,
   Image, 
@@ -25,8 +25,7 @@ interface PriceData {
 
 interface RateData {
   [key: string]: {
-    "先月との比": number;
-    "例年9月との比": number;
+    [rateType: string]: number;
   };
 }
 
@@ -53,13 +52,13 @@ const getTrendArrow = (rate: number): ImageSourcePropType => {
   return arrowDown;
 };
 
-const RateHeader: React.FC = () => (
+const RateHeader: React.FC<{ rateTypes: { lastMonth: string; lastYear: string } }> = ({ rateTypes }) => (
   <View style={styles.rateHeaderContainer}>
     <View style={styles.rateHeaderColumn}>
-      <Text style={styles.rateHeaderLabel}>先月比</Text>
+      <Text style={styles.rateHeaderLabel}>{rateTypes.lastMonth}</Text>
     </View>
     <View style={styles.rateHeaderColumn}>
-      <Text style={styles.rateHeaderLabel}>昨年比</Text>
+      <Text style={styles.rateHeaderLabel}>{rateTypes.lastYear}</Text>
     </View>
   </View>
 );
@@ -79,8 +78,18 @@ const RateDisplay: React.FC<{ rate?: number }> = ({ rate }) => {
   );
 };
 
+type SortOption = '50音順' | `${string}（高い順）` | `${string}（低い順）`;
 
-type SortOption = '50音順' | '先月比' | '昨年比';
+const SortButton: React.FC<{ sortOption: SortOption; onPress: () => void }> = ({ sortOption, onPress }) => (
+  <TouchableOpacity onPress={onPress} style={styles.sortButton}>
+    <View style={styles.sortButtonContent}>
+      <Ionicons name="funnel-outline" size={24} color="#007AFF" />
+      <Text style={styles.sortButtonText}>並び替え: </Text>
+      <Text style={styles.sortButtonSelectedText}>{sortOption}</Text>
+      <Ionicons name="chevron-down-outline" size={24} color="#007AFF" />
+    </View>
+  </TouchableOpacity>
+);
 
 const PriceTrendChart: React.FC = () => {
   const [priceData, setPriceData] = useState<PriceData | null>(null);
@@ -90,6 +99,7 @@ const PriceTrendChart: React.FC = () => {
   const [sortOption, setSortOption] = useState<SortOption>('50音順');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortModal, setShowSortModal] = useState(false);
+  const [rateTypes, setRateTypes] = useState<{ lastMonth: string; lastYear: string }>({ lastMonth: '', lastYear: '' });
 
   useEffect(() => {
     fetchData();
@@ -126,19 +136,32 @@ const PriceTrendChart: React.FC = () => {
       setPriceData(priceJson);
       setRateData(rateJson);
 
+      // rateデータの項目名を動的に取得
+      const rateTypes = Object.keys(Object.values(rateJson)[0]);
+      const lastMonthRateKey = rateTypes.find(type => type.includes('先月')) || '';
+      const lastYearRateKey = rateTypes.find(type => type.includes('例年') || type.includes('昨年')) || '';
+
       const vegList = Object.keys(priceJson).map(veg => ({
         name: veg,
         isExpanded: false,
-        lastMonthRate: rateJson[veg]?.["先月との比"],
-        lastYearRate: rateJson[veg]?.["例年9月との比"]
+        lastMonthRate: rateJson[veg]?.[lastMonthRateKey],
+        lastYearRate: rateJson[veg]?.[lastYearRateKey]
       }));
-      setVegetables(vegList);
+
+      // 50音順でソート
+      const sortedVegList = vegList.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+      setVegetables(sortedVegList);
+      setRateTypes({ lastMonth: lastMonthRateKey, lastYear: lastYearRateKey });
+
+      // ここでソートオプションを設定（既に '50音順' に設定されているはずですが、明示的に設定）
+      setSortOption('50音順');
+
     } catch (error) {
       console.error('Error fetching or parsing data: ', error);
       setError(error instanceof Error ? error.message : String(error));
     }
   };
-
 
   const processData = (vegetable: string) => {
     if (!priceData) return [];
@@ -178,19 +201,20 @@ const PriceTrendChart: React.FC = () => {
 
   const sortVegetables = () => {
     const sorted = [...vegetables].sort((a, b) => {
-      let comparison = 0;
       switch (sortOption) {
         case '50音順':
-          comparison = a.name.localeCompare(b.name, 'ja');
-          break;
-        case '先月比':
-          comparison = (b.lastMonthRate || 0) - (a.lastMonthRate || 0);
-          break;
-        case '昨年比':
-          comparison = (b.lastYearRate || 0) - (a.lastYearRate || 0);
-          break;
+          return a.name.localeCompare(b.name, 'ja');
+        case `${rateTypes.lastMonth}（高い順）`:
+          return (b.lastMonthRate || 0) - (a.lastMonthRate || 0);
+        case `${rateTypes.lastMonth}（低い順）`:
+          return (a.lastMonthRate || 0) - (b.lastMonthRate || 0);
+        case `${rateTypes.lastYear}（高い順）`:
+          return (b.lastYearRate || 0) - (a.lastYearRate || 0);
+        case `${rateTypes.lastYear}（低い順）`:
+          return (a.lastYearRate || 0) - (b.lastYearRate || 0);
+        default:
+          return 0;
       }
-      return sortOrder === 'asc' ? comparison : -comparison;
     });
     setVegetables(sorted);
   };
@@ -254,17 +278,21 @@ const PriceTrendChart: React.FC = () => {
     );
   }
 
+  const sortOptions: SortOption[] = [
+    '50音順',
+    `${rateTypes.lastMonth}（高い順）`,
+    `${rateTypes.lastMonth}（低い順）`,
+    `${rateTypes.lastYear}（高い順）`,
+    `${rateTypes.lastYear}（低い順）`
+  ];
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.container}>
-        <Text style={styles.title}>農産物価格トレンド</Text>
-        <TouchableOpacity onPress={() => setShowSortModal(true)} style={styles.sortButton}>
-          <Text style={styles.sortButtonText}>
-            {sortOption} {sortOrder === 'asc' ? '▲' : '▼'}
-          </Text>
-        </TouchableOpacity>
-        <RateHeader />
+        <Text style={styles.title}>野菜価格</Text>
+        <SortButton sortOption={sortOption} onPress={() => setShowSortModal(true)} />
+        <RateHeader rateTypes={rateTypes} />
         <FlatList
           data={vegetables}
           renderItem={renderItem}
@@ -281,7 +309,7 @@ const PriceTrendChart: React.FC = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>並び替え方法を選択</Text>
             <ModalFlatList
-              data={['50音順', '先月比', '昨年比'] as SortOption[]}
+              data={sortOptions}
               renderItem={renderSortOption}
               keyExtractor={(item) => item}
             />
@@ -298,7 +326,29 @@ const PriceTrendChart: React.FC = () => {
   );
 };
 
+
 const styles = StyleSheet.create({
+  sortButton: {
+    backgroundColor: '#F0F0F0',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  sortButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sortButtonText: {
+    fontSize: 16,
+    color: '#333333',
+  },
+  sortButtonSelectedText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    flex: 1,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -404,7 +454,7 @@ const styles = StyleSheet.create({
   },
   itemTitle: {
     fontSize: 16,
-    fontWeight: '400',
+    fontWeight: '500',
     color: '#333333',
   },
   rateText: {
@@ -425,18 +475,6 @@ const styles = StyleSheet.create({
     color: '#333333',
     marginBottom: 16,
     textAlign: 'center',
-  },
-  sortButton: {
-    backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  sortButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   listContainer: {
     paddingBottom: 16,
