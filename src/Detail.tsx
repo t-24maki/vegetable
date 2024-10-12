@@ -290,7 +290,6 @@ const PriceTrendChart: React.FC = () => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.container}>
-        <Text style={styles.title}>野菜価格</Text>
         <SortButton sortOption={sortOption} onPress={() => setShowSortModal(true)} />
         <RateHeader rateTypes={rateTypes} />
         <FlatList
