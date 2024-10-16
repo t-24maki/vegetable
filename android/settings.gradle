@@ -44,7 +44,7 @@ if (getRNMinorVersion() >= 75) {
   }
 }
 
-rootProject.name = 'vegetable'
+rootProject.name = '野菜価格'
 
 dependencyResolutionManagement {
   versionCatalogs {

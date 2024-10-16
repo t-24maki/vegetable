@@ -35,7 +35,7 @@ const AppInfoScreen: React.FC = () => {
     },
     {
       title: '価格比較について',
-      content: '「例年○月との比較」は、2018〜2020年の同月平均と比較した結果を表示しています。',
+      content: '「例年○月との比」は、2018〜2020年の同月平均と比較した結果を表示しています。',
       icon: 'bar-chart-outline'
     },
     {
