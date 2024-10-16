@@ -1,4 +1,4 @@
-package com.t24maki.vegetable
+package com.rollapps.vegetable
 
 import android.app.Application
 import android.content.res.Configuration

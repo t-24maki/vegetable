@@ -12,7 +12,8 @@ import {
   ImageSourcePropType,
   Modal,
   FlatList as ModalFlatList,
-  ListRenderItem
+  ListRenderItem,
+  ScrollView 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import SVGLineChart from './SVGLineChart';
@@ -286,6 +287,18 @@ const PriceTrendChart: React.FC = () => {
     `${rateTypes.lastYear}（低い順）`
   ];
 
+  const ListFooter = () => (
+    <View style={styles.infoBoxContainer}>
+      <View style={styles.infoBox}>
+        <Ionicons name="information-circle-outline" size={24} color="#007AFF" style={styles.infoIcon} />
+        <Text style={styles.infoText}>
+          集計対象の野菜／果物は
+          <Text style={styles.highlightText}>随時追加</Text>していきます！
+        </Text>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
@@ -297,6 +310,7 @@ const PriceTrendChart: React.FC = () => {
           renderItem={renderItem}
           keyExtractor={(item) => item.name}
           contentContainerStyle={styles.listContainer}
+          ListFooterComponent={ListFooter}
         />
       </View>
       <Modal
@@ -327,6 +341,41 @@ const PriceTrendChart: React.FC = () => {
 
 
 const styles = StyleSheet.create({
+  infoBoxContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 24,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F4FF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.23,
+    shadowRadius: 2.62,
+    elevation: 4,
+  },
+  infoIcon: {
+    marginRight: 12,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333333',
+    lineHeight: 24,
+  },
+  highlightText: {
+    fontWeight: 'bold',
+    color: '#007AFF',
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+  },
   sortButton: {
     backgroundColor: '#F0F0F0',
     borderRadius: 8,

@@ -109,9 +109,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.t24maki.vegetable'
+    namespace 'com.rollapps.vegetable'
     defaultConfig {
-        applicationId 'com.t24maki.vegetable'
+        applicationId 'com.rollapps.vegetable'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

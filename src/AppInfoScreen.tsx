@@ -16,22 +16,21 @@ const AppInfoScreen: React.FC = () => {
   const sections: Section[] = [
     {
       title: 'アプリの目的',
-      content: '主要な野菜の価格動向をリアルタイムで把握し、消費者や関係者に有用な情報を提供します。',
+      content: '主要な野菜／果物の価格情報を農林水産省のホームページから定期的に取得し、いま安く買える野菜／果物を一目で確認できます。',
       icon: 'bulb-outline'
     },
     {
       title: '主な機能',
       content: [
-        '野菜価格一覧: 各野菜の最新価格と変動率を一目で確認',
-        '価格トレンドグラフ: 過去の価格推移を視覚的に表示',
-        'カスタムソート: 野菜を名前順や価格変動率順で並び替え',
-        '詳細情報: グラフ上の任意の点をタップして特定の日付の価格を確認'
+        '野菜価格: 各野菜／果物の最新卸価格と変動率を一目で確認',
+        '価格のトレンドグラフ: 過去1年間の価格推移を折れ線グラフで確認',
+        'カスタムソート: 野菜を名前順や価格変動率順で並び替え可能',
       ],
       icon: 'list-outline'
     },
     {
       title: 'データソース',
-      content: '農林水産省が定期的に報告する「青果物卸売市場調査」に基づいています。金額は卸売価格であり、店舗での価格とは異なる場合があります。',
+      content: '農林水産省が月3回報告する「青果物卸売市場調査」に基づいています。金額は卸売価格であり、店舗での価格とは異なります。',
       icon: 'server-outline'
     },
     {
@@ -42,8 +41,7 @@ const AppInfoScreen: React.FC = () => {
     {
       title: '利用上の注意',
       content: [
-        '表示される価格は全国平均であり、地域によって実際の価格と異なる場合があります。',
-        'このアプリは情報提供を目的としており、取引や投資の判断材料としての使用は推奨されません。',
+        '表示される価格は全国平均であり、地域差によっての違いは考慮されません。',
         'アプリの使用によって生じたいかなる損害についても、開発者は責任を負いかねます。'
       ],
       icon: 'warning-outline'
@@ -72,15 +70,15 @@ const AppInfoScreen: React.FC = () => {
         </View>
       ))}
 
-      <TouchableOpacity
+      {/* <TouchableOpacity
         style={styles.contactButton}
         onPress={() => Linking.openURL('https://example.com/contact')}
       >
         <Ionicons name="mail-outline" size={24} color="#ffffff" />
         <Text style={styles.contactButtonText}>お問い合わせ</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
-      <Text style={styles.version}>バージョン: 1.0.0</Text>
+      {/* <Text style={styles.version}>バージョン: 1.0.0</Text> */}
     </ScrollView>
   );
 };
