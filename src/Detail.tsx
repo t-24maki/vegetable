@@ -260,47 +260,47 @@ const PriceTrendChart: React.FC = () => {
   );
 
   
-  const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => (
-    <View style={styles.itemContainer}>
-      <TouchableOpacity 
-        onPress={() => !item.isDisabled && toggleExpand(index)} 
-        style={styles.itemHeader}
-        disabled={item.isDisabled}
-      >
-        <View style={styles.itemTitleContainer}>
-          <Text style={styles.itemTitle}>{item.name}</Text>
-        </View>
-        <View style={styles.ratesContainer}>
-          <RateDisplay rate={item.lastMonthRate} isDisabled={item.isDisabled} />
-          <RateDisplay rate={item.lastYearRate} isDisabled={item.isDisabled} />
-        </View>
-        {!item.isDisabled && (
-          <Ionicons
-            name={item.isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
-            size={24}
-            color="#007AFF"
-          />
-        )}
-      </TouchableOpacity>
-      {item.isExpanded && !item.isDisabled && (
-        <View style={styles.chartContainer}>
-          <SVGLineChart
-            data={processData(item.name)}
-            width={screenWidth - 40}
-            height={screenHeight * 0.3}
-            padding={40}
-            xAxisLabel=""
-            yAxisLabel=""
-          />
-        </View>
+const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => (
+  <View style={styles.itemContainer}>
+    <TouchableOpacity 
+      onPress={() => !item.isDisabled && toggleExpand(index)} 
+      style={styles.itemHeader}
+      disabled={item.isDisabled}
+    >
+      <View style={styles.itemTitleContainer}>
+        <Text style={styles.itemTitle}>{item.name}</Text>
+      </View>
+      <View style={styles.ratesContainer}>
+        <RateDisplay rate={item.lastMonthRate} isDisabled={item.isDisabled} />
+        <RateDisplay rate={item.lastYearRate} isDisabled={item.isDisabled} />
+      </View>
+      {!item.isDisabled && (
+        <Ionicons
+          name={item.isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+          size={24}
+          color="#007AFF"
+        />
       )}
-      {item.isDisabled && (
-        <View style={styles.disabledOverlay}>
-          <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
-        </View>
-      )}
-    </View>
-  );
+    </TouchableOpacity>
+    {item.isExpanded && !item.isDisabled && (
+      <View style={styles.chartContainer}>
+        <SVGLineChart
+          data={processData(item.name)}
+          width={screenWidth - 40}
+          height={screenHeight * 0.3}
+          padding={40}
+          xAxisLabel=""
+          yAxisLabel=""
+        />
+      </View>
+    )}
+    {item.isDisabled && (
+      <View style={styles.disabledOverlay}>
+        <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
+      </View>
+    )}
+  </View>
+);
 
   if (error) {
     return (
