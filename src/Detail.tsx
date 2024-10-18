@@ -35,6 +35,7 @@ interface VegetableItem {
   isExpanded: boolean;
   lastMonthRate?: number;
   lastYearRate?: number;
+  isDisabled?: boolean;
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -53,18 +54,37 @@ const getTrendArrow = (rate: number): ImageSourcePropType => {
   return arrowDown;
 };
 
-const RateHeader: React.FC<{ rateTypes: { lastMonth: string; lastYear: string } }> = ({ rateTypes }) => (
-  <View style={styles.rateHeaderContainer}>
-    <View style={styles.rateHeaderColumn}>
-      <Text style={styles.rateHeaderLabel}>{rateTypes.lastMonth}</Text>
-    </View>
-    <View style={styles.rateHeaderColumn}>
-      <Text style={styles.rateHeaderLabel}>{rateTypes.lastYear}</Text>
-    </View>
-  </View>
-);
+interface RateDisplayProps {
+  rate?: number;
+  isDisabled?: boolean;
+  lockIcon?: 'lock-closed' | 'lock-closed-outline' | 'eye-off' | 'eye-off-outline';
+}
 
-const RateDisplay: React.FC<{ rate?: number }> = ({ rate }) => {
+const RateHeader: React.FC<{ rateTypes: { lastMonth: string; lastYear: string } }> = ({ rateTypes }) => {
+  const formatText = (text: string) => {
+    if (text.length <= 3) return text;
+    const main = text.slice(0, -3);
+    const last = text.slice(-3);
+    return `${main}\n${last}`;
+  };
+
+  return (
+    <View style={styles.rateHeaderContainer}>
+      <View style={styles.rateHeaderColumn}>
+        <Text style={styles.rateHeaderLabel}>{formatText(rateTypes.lastMonth)}</Text>
+      </View>
+      <View style={styles.rateHeaderColumn}>
+        <Text style={styles.rateHeaderLabel}>{formatText(rateTypes.lastYear)}</Text>
+      </View>
+    </View>
+  );
+};
+
+const RateDisplay: React.FC<RateDisplayProps> = ({ rate, isDisabled }) => {
+  if (isDisabled) {
+    return null; // 非活性の場合は何も表示しない
+  }
+
   const image = rate ? getTrendArrow(rate) : arrowMiddle;
   
   return (
@@ -142,11 +162,16 @@ const PriceTrendChart: React.FC = () => {
       const lastMonthRateKey = rateTypes.find(type => type.includes('先月')) || '';
       const lastYearRateKey = rateTypes.find(type => type.includes('例年') || type.includes('昨年')) || '';
 
+      // 非活性にする野菜のリスト
+      const disabledVegetables = ['レタス', 'にんじん'];
+
+      // vegListの定義を更新
       const vegList = Object.keys(priceJson).map(veg => ({
         name: veg,
         isExpanded: false,
         lastMonthRate: rateJson[veg]?.[lastMonthRateKey],
-        lastYearRate: rateJson[veg]?.[lastYearRateKey]
+        lastYearRate: rateJson[veg]?.[lastYearRateKey],
+        isDisabled: disabledVegetables.includes(veg) // 非活性にする野菜のリストに含まれているかチェック
       }));
 
       // 50音順でソート
@@ -155,7 +180,7 @@ const PriceTrendChart: React.FC = () => {
       setVegetables(sortedVegList);
       setRateTypes({ lastMonth: lastMonthRateKey, lastYear: lastYearRateKey });
 
-      // ここでソートオプションを設定（既に '50音順' に設定されているはずですが、明示的に設定）
+      // ソートオプションを設定
       setSortOption('50音順');
 
     } catch (error) {
@@ -163,6 +188,11 @@ const PriceTrendChart: React.FC = () => {
       setError(error instanceof Error ? error.message : String(error));
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
 
   const processData = (vegetable: string) => {
     if (!priceData) return [];
@@ -196,9 +226,6 @@ const PriceTrendChart: React.FC = () => {
     setVegetables(updatedVegetables);
   };
 
-  const toggleSortOrder = () => {
-    setSortOrder(prevOrder => prevOrder === 'asc' ? 'desc' : 'asc');
-  };
 
   const sortVegetables = () => {
     const sorted = [...vegetables].sort((a, b) => {
@@ -232,23 +259,30 @@ const PriceTrendChart: React.FC = () => {
     </TouchableOpacity>
   );
 
+  
   const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => (
     <View style={styles.itemContainer}>
-      <TouchableOpacity onPress={() => toggleExpand(index)} style={styles.itemHeader}>
+      <TouchableOpacity 
+        onPress={() => !item.isDisabled && toggleExpand(index)} 
+        style={styles.itemHeader}
+        disabled={item.isDisabled}
+      >
         <View style={styles.itemTitleContainer}>
           <Text style={styles.itemTitle}>{item.name}</Text>
         </View>
         <View style={styles.ratesContainer}>
-          <RateDisplay rate={item.lastMonthRate} />
-          <RateDisplay rate={item.lastYearRate} />
+          <RateDisplay rate={item.lastMonthRate} isDisabled={item.isDisabled} />
+          <RateDisplay rate={item.lastYearRate} isDisabled={item.isDisabled} />
         </View>
-        <Ionicons
-          name={item.isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
-          size={24}
-          color="#007AFF"
-        />
+        {!item.isDisabled && (
+          <Ionicons
+            name={item.isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+            size={24}
+            color="#007AFF"
+          />
+        )}
       </TouchableOpacity>
-      {item.isExpanded && (
+      {item.isExpanded && !item.isDisabled && (
         <View style={styles.chartContainer}>
           <SVGLineChart
             data={processData(item.name)}
@@ -258,6 +292,11 @@ const PriceTrendChart: React.FC = () => {
             xAxisLabel=""
             yAxisLabel=""
           />
+        </View>
+      )}
+      {item.isDisabled && (
+        <View style={styles.disabledOverlay}>
+          <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
         </View>
       )}
     </View>
@@ -292,8 +331,7 @@ const PriceTrendChart: React.FC = () => {
       <View style={styles.infoBox}>
         <Ionicons name="information-circle-outline" size={24} color="#007AFF" style={styles.infoIcon} />
         <Text style={styles.infoText}>
-          集計対象の野菜／果物は
-          <Text style={styles.highlightText}>随時追加</Text>していきます！
+          集計対象の野菜／果物は随時追加中！
         </Text>
       </View>
     </View>
@@ -341,6 +379,107 @@ const PriceTrendChart: React.FC = () => {
 
 
 const styles = StyleSheet.create({
+  itemContainer: {
+    marginBottom: 16,
+    borderRadius: 8,
+    backgroundColor: '#F8F8F8',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333333',
+  },
+  ratesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flex: 1,
+    marginRight: 10,
+  },
+  disabledOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // 薄い灰色のオーバーレイ
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  disabledItem: {
+    backgroundColor: '#E0E0E0', // より濃い灰色の背景
+    opacity: 0.8, // 透明度を少し上げて、よりはっきりと見えるように
+  },
+  disabledText: {
+    color: '#666666', // テキストの色をより濃い灰色に
+  },
+  lockIconContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rateColumn: {
+    alignItems: 'center',
+    width: 80,
+    marginHorizontal: 5,
+  },
+  rateValueContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: 40,
+  },
+  rateValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333333',
+    zIndex: 2,
+  },
+  trendArrow: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    opacity: 0.8,
+    zIndex: 1,
+    resizeMode: 'contain',
+  },
+  disabledRate: {
+    opacity: 0.5,
+  },
+  disabledArrow: {
+    opacity: 0.3,
+  },
+  rateHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingRight: 50,
+    marginBottom: 8,
+    marginRight: 10,
+  },
+  rateHeaderColumn: {
+    width: 80,
+    alignItems: 'center',
+  },
+  rateHeaderLabel: {
+    fontSize: 12,
+    color: '#666666',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
   infoBoxContainer: {
     paddingHorizontal: 16,
     paddingVertical: 24,
@@ -435,62 +574,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  rateHeaderContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingRight: 50, // Ioniconsのスペースを考慮
-    marginBottom: 8,
-    marginRight: 10, // 右端の余白を追加
-  },
-  rateHeaderColumn: {
-    width: 80,
-    alignItems: 'center',
-  },
-  rateHeaderLabel: {
-    fontSize: 12,
-    color: '#666666',
-    fontWeight: 'bold',
-  },
-  ratesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    flex: 1,
-    marginRight: 10,
-  },
-  rateColumn: {
-    alignItems: 'center',
-    width: 80,
-    marginHorizontal: 5,
-  },
-  rateValueContainer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    height: 40,
-  },
-  rateValue: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333333',
-    zIndex: 2,
-  },
-  trendArrow: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    opacity: 0.8,
-    zIndex: 1,
-    resizeMode: 'contain',
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-  },
   rateLabel: {
     fontSize: 12,
     color: '#666666',
@@ -499,11 +582,6 @@ const styles = StyleSheet.create({
   itemTitleContainer: {
     flex: 1,
     justifyContent: 'center',
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333333',
   },
   rateText: {
     fontSize: 12,
@@ -526,17 +604,6 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     paddingBottom: 16,
-  },
-  itemContainer: {
-    marginBottom: 16,
-    borderRadius: 8,
-    backgroundColor: '#F8F8F8',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   chartContainer: {
     padding: 16,
