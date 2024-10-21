@@ -36,7 +36,7 @@ const App: React.FC = () => {
           })}
         >
           <Tab.Screen name="野菜価格" component={Detail} />
-          <Tab.Screen name="設定" component={SettingsScreen} />
+          {/* <Tab.Screen name="設定" component={SettingsScreen} /> */}
           <Tab.Screen name="アプリ説明" component={AppInfoScreen} />
         </Tab.Navigator>
       </NavigationContainer>

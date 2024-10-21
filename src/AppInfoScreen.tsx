@@ -78,30 +78,30 @@ const AppInfoScreen: React.FC = () => {
         <Text style={styles.contactButtonText}>お問い合わせ</Text>
       </TouchableOpacity> */}
 
-      {/* <Text style={styles.version}>バージョン: 1.0.0</Text> */}
+      <Text style={styles.version}></Text>
     </ScrollView>
   );
 };
 
 
 const styles = StyleSheet.create({
-    bulletItem: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        marginBottom: 8,
-      },
-      bullet: {
-        fontSize: 16,
-        lineHeight: 24,
-        marginRight: 8,
-        color: '#3498db',
-      },
-      bulletText: {
-        flex: 1,
-        fontSize: 16,
-        lineHeight: 24,
-        color: '#34495e',
-      },
+  bulletItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  bullet: {
+    fontSize: 16,
+    lineHeight: 24,
+    marginRight: 8,
+    color: '#3498db',
+  },
+  bulletText: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#34495e',
+  },
   container: {
     flex: 1,
     padding: 20,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   },
   version: {
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: 60,
     color: '#7f8c8d',
   },
 });

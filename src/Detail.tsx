@@ -47,10 +47,10 @@ const arrowDownMiddle = require('../assets/arrow-downmiddle.png');
 const arrowDown = require('../assets/arrow-down.png');
 
 const getTrendArrow = (rate: number): ImageSourcePropType => {
-  if (rate > 1.5) return arrowUp;
-  if (rate > 1.2) return arrowUpMiddle;
-  if (rate > 0.8) return arrowMiddle;
-  if (rate > 0.5) return arrowDownMiddle;
+  if (rate > 1.3) return arrowUp;
+  if (rate > 1.1) return arrowUpMiddle;
+  if (rate > 0.9) return arrowMiddle;
+  if (rate > 0.7) return arrowDownMiddle;
   return arrowDown;
 };
 
@@ -171,16 +171,18 @@ const PriceTrendChart: React.FC = () => {
         isExpanded: false,
         lastMonthRate: rateJson[veg]?.[lastMonthRateKey],
         lastYearRate: rateJson[veg]?.[lastYearRateKey],
-        isDisabled: disabledVegetables.includes(veg) // 非活性にする野菜のリストに含まれているかチェック
+        isDisabled: disabledVegetables.includes(veg)
       }));
 
-      // 50音順でソート
-      const sortedVegList = vegList.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+      // 50音順でソートし、非活性項目を最後に
+      const sortedVegList = vegList.sort((a, b) => {
+        if (a.isDisabled && !b.isDisabled) return 1;
+        if (!a.isDisabled && b.isDisabled) return -1;
+        return a.name.localeCompare(b.name, 'ja');
+      });
 
       setVegetables(sortedVegList);
       setRateTypes({ lastMonth: lastMonthRateKey, lastYear: lastYearRateKey });
-
-      // ソートオプションを設定
       setSortOption('50音順');
 
     } catch (error) {
@@ -228,7 +230,7 @@ const PriceTrendChart: React.FC = () => {
 
 
   const sortVegetables = () => {
-    const sorted = [...vegetables].sort((a, b) => {
+    const activeProcedure = (a: VegetableItem, b: VegetableItem) => {
       switch (sortOption) {
         case '50音順':
           return a.name.localeCompare(b.name, 'ja');
@@ -243,7 +245,16 @@ const PriceTrendChart: React.FC = () => {
         default:
           return 0;
       }
+    };
+
+    const sorted = [...vegetables].sort((a, b) => {
+      // 非活性項目を最後に
+      if (a.isDisabled && !b.isDisabled) return 1;
+      if (!a.isDisabled && b.isDisabled) return -1;
+      // 両方とも活性か非活性の場合、通常のソート
+      return activeProcedure(a, b);
     });
+
     setVegetables(sorted);
   };
 
@@ -259,48 +270,56 @@ const PriceTrendChart: React.FC = () => {
     </TouchableOpacity>
   );
 
+  // 項目名を置換する関数
+  const replaceItemName = (name: string): string => {
+    const replacements: { [key: string]: string } = {
+      'ばれいしょ': 'じゃがいも',
+      'ねぎ': 'ながねぎ',
+    };
+    return replacements[name] || name;
+  };
   
-const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => (
-  <View style={styles.itemContainer}>
-    <TouchableOpacity 
-      onPress={() => !item.isDisabled && toggleExpand(index)} 
-      style={styles.itemHeader}
-      disabled={item.isDisabled}
-    >
-      <View style={styles.itemTitleContainer}>
-        <Text style={styles.itemTitle}>{item.name}</Text>
-      </View>
-      <View style={styles.ratesContainer}>
-        <RateDisplay rate={item.lastMonthRate} isDisabled={item.isDisabled} />
-        <RateDisplay rate={item.lastYearRate} isDisabled={item.isDisabled} />
-      </View>
-      {!item.isDisabled && (
-        <Ionicons
-          name={item.isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
-          size={24}
-          color="#007AFF"
-        />
+  const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => (
+    <View style={[styles.itemContainer, item.isExpanded && styles.itemContainerExpanded]}>
+      <TouchableOpacity 
+        onPress={() => !item.isDisabled && toggleExpand(index)} 
+        style={styles.itemHeader}
+        disabled={item.isDisabled}
+      >
+        <View style={styles.itemTitleContainer}>
+          <Text style={styles.itemTitle}>{replaceItemName(item.name)}</Text>
+        </View>
+        <View style={styles.ratesContainer}>
+          <RateDisplay rate={item.lastMonthRate} isDisabled={item.isDisabled} />
+          <RateDisplay rate={item.lastYearRate} isDisabled={item.isDisabled} />
+        </View>
+        {!item.isDisabled && (
+          <Ionicons
+            name={item.isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+            size={24}
+            color="#007AFF"
+          />
+        )}
+      </TouchableOpacity>
+      {item.isExpanded && !item.isDisabled && (
+        <View style={styles.chartContainer}>
+          <SVGLineChart
+            data={processData(item.name)}
+            width={screenWidth - 40}
+            height={screenHeight * 0.3}
+            padding={40}
+            xAxisLabel=""
+            yAxisLabel=""
+          />
+        </View>
       )}
-    </TouchableOpacity>
-    {item.isExpanded && !item.isDisabled && (
-      <View style={styles.chartContainer}>
-        <SVGLineChart
-          data={processData(item.name)}
-          width={screenWidth - 40}
-          height={screenHeight * 0.3}
-          padding={40}
-          xAxisLabel=""
-          yAxisLabel=""
-        />
-      </View>
-    )}
-    {item.isDisabled && (
-      <View style={styles.disabledOverlay}>
-        <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
-      </View>
-    )}
-  </View>
-);
+      {item.isDisabled && (
+        <View style={styles.disabledOverlay}>
+          <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
+        </View>
+      )}
+    </View>
+  );
 
   if (error) {
     return (
@@ -326,12 +345,12 @@ const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => 
     `${rateTypes.lastYear}（低い順）`
   ];
 
-  const ListFooter = () => (
+  const InfoBox = () => (
     <View style={styles.infoBoxContainer}>
       <View style={styles.infoBox}>
         <Ionicons name="information-circle-outline" size={24} color="#007AFF" style={styles.infoIcon} />
         <Text style={styles.infoText}>
-          集計対象の野菜／果物は随時追加中！
+          本アプリは現在試用版です。集計対象の野菜／果物は随時追加されます。
         </Text>
       </View>
     </View>
@@ -341,6 +360,7 @@ const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => 
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.container}>
+        <InfoBox />
         <SortButton sortOption={sortOption} onPress={() => setShowSortModal(true)} />
         <RateHeader rateTypes={rateTypes} />
         <FlatList
@@ -348,7 +368,7 @@ const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => 
           renderItem={renderItem}
           keyExtractor={(item) => item.name}
           contentContainerStyle={styles.listContainer}
-          ListFooterComponent={ListFooter}
+          ListFooterComponent={<View style={styles.adSpace} />}
         />
       </View>
       <Modal
@@ -382,13 +402,18 @@ const styles = StyleSheet.create({
   itemContainer: {
     marginBottom: 16,
     borderRadius: 8,
-    backgroundColor: '#F8F8F8',
+    backgroundColor: '#FFFFFF',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  itemContainerExpanded: {
+    backgroundColor: '#F8F8F8',
   },
   itemHeader: {
     flexDirection: 'row',
@@ -396,6 +421,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     backgroundColor: '#FFFFFF',
+  },
+  chartContainer: {
+    padding: 16,
+    backgroundColor: '#F8F8F8',
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  container: {
+    flex: 1,
+    padding: 16,
+  },
+  listContainer: {
+    paddingBottom: 16,
+  },
+  adSpace: {
+    height: 40, // バナー広告の高さ + 追加のパディング
   },
   itemTitle: {
     fontSize: 16,
@@ -587,27 +632,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666666',
   },
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  container: {
-    flex: 1,
-    padding: 16,
-  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#333333',
     marginBottom: 16,
     textAlign: 'center',
-  },
-  listContainer: {
-    paddingBottom: 16,
-  },
-  chartContainer: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
   },
   errorContainer: {
     flex: 1,

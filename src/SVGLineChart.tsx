@@ -30,11 +30,13 @@ const SVGLineChart: React.FC<SVGLineChartProps> = ({ data, width, height, paddin
     const yRange = yMaxRaw - yMinRaw;
 
     let yTickInterval: number;
-    if (yRange >= 1600) {
+    if (yRange >= 3000) {
+      yTickInterval = 500;
+    } else if (yRange >= 1500) {
       yTickInterval = 200;
     } else if (yRange >= 600) {
       yTickInterval = 100;
-    } else if (yRange >= 150) {
+    } else if (yRange >= 100) {
       yTickInterval = 50;
     } else {
       yTickInterval = 10;
