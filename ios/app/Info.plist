@@ -30,9 +30,15 @@
           <string>com.rollapps.vegetable</string>
         </array>
       </dict>
+      <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+          <string>exp+vegetable</string>
+        </array>
+      </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>3</string>
     <key>GADApplicationIdentifier</key>
     <string>ca-app-pub-9406489822776534~8381129539</string>
     <key>GADDelayAppMeasurementInit</key>

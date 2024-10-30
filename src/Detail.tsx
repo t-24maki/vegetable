@@ -130,6 +130,8 @@ const PriceTrendChart: React.FC = () => {
     sortVegetables();
   }, [sortOption, sortOrder]);
 
+  const hiddenVegetables = ['レタス', 'にんじん', 'キャベツ', 'ねぎ']; //非表示にする野菜リスト
+
   const fetchData = async () => {
     try {
       const [priceResponse, rateResponse] = await Promise.all([
@@ -163,10 +165,12 @@ const PriceTrendChart: React.FC = () => {
       const lastYearRateKey = rateTypes.find(type => type.includes('例年') || type.includes('昨年')) || '';
 
       // 非活性にする野菜のリスト
-      const disabledVegetables = ['レタス', 'にんじん'];
+      const disabledVegetables = ['レタス', 'にんじん','キャベツ','ねぎ'];
 
       // vegListの定義を更新
-      const vegList = Object.keys(priceJson).map(veg => ({
+      const vegList = Object.keys(priceJson)
+      .filter(veg => !hiddenVegetables.includes(veg)) // 非表示項目をフィルタリング
+      .map(veg => ({
         name: veg,
         isExpanded: false,
         lastMonthRate: rateJson[veg]?.[lastMonthRateKey],
