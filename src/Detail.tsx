@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -141,38 +141,35 @@ const PriceTrendChart: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    sortVegetables();
-  }, [sortOption, sortOrder]);
+    if (vegetables.length > 0) {  // vegetablesが空の場合はソートしない
+      sortVegetables();
+    }
+  }, [sortOption, sortOrder, unlockedVegetables]); // sortVegetablesは依存配列から除外
 
   const hiddenVegetables = []; //非表示にする野菜リスト
 
-  const handleUnlock = async (vegetableName: string) => {
-    Alert.alert(
-      "項目のロック解除",
-      "広告を視聴して12時間この項目をアンロックしますか？",
-      [
-        { text: "キャンセル", style: "cancel" },
-        {
-          text: "視聴する",
-          onPress: async () => {
-            try {
-              const success = await adManager.showRewardedInterstitialAd();
-              if (success) {
-                await UnlockManager.unlockVegetable(vegetableName);
-                const newUnlockStatus = await AsyncStorage.getItem('unlockedVegetables');
-                if (newUnlockStatus) {
-                  setUnlockedVegetables(JSON.parse(newUnlockStatus));
-                }
-              }
-            } catch (error) {
-              console.error('Failed to unlock:', error);
-              Alert.alert('エラー', 'ロック解除に失敗しました。もう一度お試しください。');
-            }
-          }
-        }
-      ]
-    );
-  };
+// handleUnlock関数を修正
+const handleUnlock = async (vegetableName: string) => {
+  try {
+    const success = await adManager.showRewardedInterstitialAd();
+    if (success) {
+      await UnlockManager.unlockVegetable(vegetableName);
+      const newUnlockStatus = await AsyncStorage.getItem('unlockedVegetables');
+      if (newUnlockStatus) {
+        setUnlockedVegetables(JSON.parse(newUnlockStatus));
+        // ソートはuseEffectで自動的に実行されるため、ここでは実行しない
+        Alert.alert(
+          "ロック解除完了",
+          `${replaceItemName(vegetableName)}の価格が12時間確認できるようになりました！`,
+          [{ text: "OK", style: "default" }]
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Failed to unlock:', error);
+    Alert.alert('エラー', 'ロック解除に失敗しました。もう一度お試しください。');
+  }
+};
 
   useEffect(() => {
     const loadUnlockStatus = async () => {
@@ -239,9 +236,9 @@ const PriceTrendChart: React.FC = () => {
 
       // 50音順でソートし、非活性項目を最後に
       const sortedVegList = vegList.sort((a, b) => {
-        if (a.isDisabled && !b.isDisabled) return 1;
-        if (!a.isDisabled && b.isDisabled) return -1;
-        return a.name.localeCompare(b.name, 'ja');
+        const aDisplayName = replaceItemName(a.name);
+        const bDisplayName = replaceItemName(b.name);
+        return aDisplayName.localeCompare(bDisplayName, 'ja');
       });
 
       setVegetables(sortedVegList);
@@ -291,35 +288,52 @@ const PriceTrendChart: React.FC = () => {
     setVegetables(updatedVegetables);
   };
 
-
-  const sortVegetables = () => {
-    const activeProcedure = (a: VegetableItem, b: VegetableItem) => {
+  const sortVegetables = useCallback(() => {
+    const getSortValue = (item: VegetableItem) => {
       switch (sortOption) {
         case '50音順':
-          return a.name.localeCompare(b.name, 'ja');
+          return replaceItemName(item.name);
         case `${rateTypes.lastMonth}（高い順）`:
-          return (b.lastMonthRate || 0) - (a.lastMonthRate || 0);
+          return -(item.lastMonthRate || 0);
         case `${rateTypes.lastMonth}（低い順）`:
-          return (a.lastMonthRate || 0) - (b.lastMonthRate || 0);
+          return (item.lastMonthRate || 0);
         case `${rateTypes.lastYear}（高い順）`:
-          return (b.lastYearRate || 0) - (a.lastYearRate || 0);
+          return -(item.lastYearRate || 0);
         case `${rateTypes.lastYear}（低い順）`:
-          return (a.lastYearRate || 0) - (b.lastYearRate || 0);
+          return (item.lastYearRate || 0);
         default:
           return 0;
       }
     };
-
+  
     const sorted = [...vegetables].sort((a, b) => {
-      // 非活性項目を最後に
-      if (a.isDisabled && !b.isDisabled) return 1;
-      if (!a.isDisabled && b.isDisabled) return -1;
-      // 両方とも活性か非活性の場合、通常のソート
-      return activeProcedure(a, b);
+      // 50音順の場合は、ロック状態に関係なく表示名でソート
+      if (sortOption === '50音順') {
+        const aDisplayName = replaceItemName(a.name);
+        const bDisplayName = replaceItemName(b.name);
+        return aDisplayName.localeCompare(bDisplayName, 'ja');
+      }
+  
+      // その他のソートの場合は、ロックされた項目を下に
+      const aIsLocked = a.isDisabled && !unlockedVegetables[a.name];
+      const bIsLocked = b.isDisabled && !unlockedVegetables[b.name];
+  
+      if (aIsLocked !== bIsLocked) {
+        return aIsLocked ? 1 : -1;
+      }
+  
+      // 同じロック状態の項目同士で比較
+      const aValue = getSortValue(a);
+      const bValue = getSortValue(b);
+      return typeof aValue === 'string'
+        ? aValue.localeCompare(bValue as string, 'ja')
+        : (bValue as number) - (aValue as number);
     });
-
+  
     setVegetables(sorted);
-  };
+  }, [vegetables, unlockedVegetables, sortOption, rateTypes]);
+
+
 
   const renderSortOption: ListRenderItem<SortOption> = ({ item }) => (
     <TouchableOpacity
@@ -355,11 +369,11 @@ const PriceTrendChart: React.FC = () => {
         >
           <View style={styles.itemTitleContainer}>
             <Text style={styles.itemTitle}>{replaceItemName(item.name)}</Text>
-            {unlockedUntil && (
+            {/* {unlockedUntil && (
               <Text style={styles.unlockTimeRemaining}>
                 残り: {UnlockManager.getRemainingTime(unlockedUntil)}
               </Text>
-            )}
+            )} */}
           </View>
           <View style={styles.ratesContainer}>
             <RateDisplay rate={item.lastMonthRate} isDisabled={isLocked} />
