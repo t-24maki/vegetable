@@ -13,10 +13,14 @@ import {
   Modal,
   FlatList as ModalFlatList,
   ListRenderItem,
-  ScrollView 
+  ScrollView,
+  Alert 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import SVGLineChart from './SVGLineChart';
+import { UnlockManager } from './UnlockManager';
+import { useAdManager } from '../AdManager';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface PriceData {
   [key: string]: {
@@ -37,6 +41,13 @@ interface VegetableItem {
   lastYearRate?: number;
   isDisabled?: boolean;
 }
+
+interface UnlockedVegetable {
+  [key: string]: {
+    unlockedUntil: number;
+  };
+}
+
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -121,6 +132,9 @@ const PriceTrendChart: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showSortModal, setShowSortModal] = useState(false);
   const [rateTypes, setRateTypes] = useState<{ lastMonth: string; lastYear: string }>({ lastMonth: '', lastYear: '' });
+  const [unlockedVegetables, setUnlockedVegetables] = useState<UnlockedVegetable>({});
+
+  const adManager = useAdManager();
 
   useEffect(() => {
     fetchData();
@@ -130,7 +144,51 @@ const PriceTrendChart: React.FC = () => {
     sortVegetables();
   }, [sortOption, sortOrder]);
 
-  const hiddenVegetables = ['レタス', 'にんじん', 'キャベツ', 'ねぎ']; //非表示にする野菜リスト
+  const hiddenVegetables = []; //非表示にする野菜リスト
+
+  const handleUnlock = async (vegetableName: string) => {
+    Alert.alert(
+      "項目のロック解除",
+      "広告を視聴して12時間この項目をアンロックしますか？",
+      [
+        { text: "キャンセル", style: "cancel" },
+        {
+          text: "視聴する",
+          onPress: async () => {
+            try {
+              const success = await adManager.showRewardedInterstitialAd();
+              if (success) {
+                await UnlockManager.unlockVegetable(vegetableName);
+                const newUnlockStatus = await AsyncStorage.getItem('unlockedVegetables');
+                if (newUnlockStatus) {
+                  setUnlockedVegetables(JSON.parse(newUnlockStatus));
+                }
+              }
+            } catch (error) {
+              console.error('Failed to unlock:', error);
+              Alert.alert('エラー', 'ロック解除に失敗しました。もう一度お試しください。');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  useEffect(() => {
+    const loadUnlockStatus = async () => {
+      try {
+        const status = await AsyncStorage.getItem('unlockedVegetables');
+        if (status) {
+          setUnlockedVegetables(JSON.parse(status));
+        }
+      } catch (error) {
+        console.error('Failed to load unlock status:', error);
+      }
+    };
+    loadUnlockStatus();
+  }, []);
+
+
 
   const fetchData = async () => {
     try {
@@ -153,6 +211,7 @@ const PriceTrendChart: React.FC = () => {
         throw new Error(`HTTP error! status: ${priceResponse.status}, ${rateResponse.status}`);
       }
 
+    
       const priceJson: PriceData = await priceResponse.json();
       const rateJson: RateData = await rateResponse.json();
 
@@ -283,47 +342,61 @@ const PriceTrendChart: React.FC = () => {
     return replacements[name] || name;
   };
   
-  const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => (
-    <View style={[styles.itemContainer, item.isExpanded && styles.itemContainerExpanded]}>
-      <TouchableOpacity 
-        onPress={() => !item.isDisabled && toggleExpand(index)} 
-        style={styles.itemHeader}
-        disabled={item.isDisabled}
-      >
-        <View style={styles.itemTitleContainer}>
-          <Text style={styles.itemTitle}>{replaceItemName(item.name)}</Text>
-        </View>
-        <View style={styles.ratesContainer}>
-          <RateDisplay rate={item.lastMonthRate} isDisabled={item.isDisabled} />
-          <RateDisplay rate={item.lastYearRate} isDisabled={item.isDisabled} />
-        </View>
-        {!item.isDisabled && (
-          <Ionicons
-            name={item.isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
-            size={24}
-            color="#007AFF"
-          />
+  const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => {
+    const isLocked = item.isDisabled && !unlockedVegetables[item.name];
+    const unlockedUntil = unlockedVegetables[item.name]?.unlockedUntil;
+    
+    return (
+      <View style={[styles.itemContainer, item.isExpanded && styles.itemContainerExpanded]}>
+        <TouchableOpacity 
+          onPress={() => !isLocked && toggleExpand(index)} 
+          style={styles.itemHeader}
+          disabled={isLocked}
+        >
+          <View style={styles.itemTitleContainer}>
+            <Text style={styles.itemTitle}>{replaceItemName(item.name)}</Text>
+            {unlockedUntil && (
+              <Text style={styles.unlockTimeRemaining}>
+                残り: {UnlockManager.getRemainingTime(unlockedUntil)}
+              </Text>
+            )}
+          </View>
+          <View style={styles.ratesContainer}>
+            <RateDisplay rate={item.lastMonthRate} isDisabled={isLocked} />
+            <RateDisplay rate={item.lastYearRate} isDisabled={isLocked} />
+          </View>
+          {!isLocked && (
+            <Ionicons
+              name={item.isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'}
+              size={24}
+              color="#007AFF"
+            />
+          )}
+        </TouchableOpacity>
+        {item.isExpanded && !isLocked && (
+          <View style={styles.chartContainer}>
+            <SVGLineChart
+              data={processData(item.name)}
+              width={screenWidth - 40}
+              height={screenHeight * 0.3}
+              padding={40}
+              xAxisLabel=""
+              yAxisLabel=""
+            />
+          </View>
         )}
-      </TouchableOpacity>
-      {item.isExpanded && !item.isDisabled && (
-        <View style={styles.chartContainer}>
-          <SVGLineChart
-            data={processData(item.name)}
-            width={screenWidth - 40}
-            height={screenHeight * 0.3}
-            padding={40}
-            xAxisLabel=""
-            yAxisLabel=""
-          />
-        </View>
-      )}
-      {item.isDisabled && (
-        <View style={styles.disabledOverlay}>
-          <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
-        </View>
-      )}
-    </View>
-  );
+        {isLocked && (
+          <TouchableOpacity 
+            style={styles.disabledOverlay}
+            onPress={() => handleUnlock(item.name)}
+          >
+            <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
+            <Text style={styles.unlockText}>広告を視聴して確認</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   if (error) {
     return (
@@ -403,6 +476,26 @@ const PriceTrendChart: React.FC = () => {
 
 
 const styles = StyleSheet.create({
+  unlockTimeRemaining: {
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 8,
+  },
+  unlockText: {
+    color: '#FFFFFF',
+    marginTop: 8,
+    fontSize: 14,
+  },
+  disabledOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   itemContainer: {
     marginBottom: 16,
     borderRadius: 8,
@@ -457,16 +550,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     flex: 1,
     marginRight: 10,
-  },
-  disabledOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // 薄い灰色のオーバーレイ
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   disabledItem: {
     backgroundColor: '#E0E0E0', // より濃い灰色の背景

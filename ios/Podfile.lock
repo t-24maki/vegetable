@@ -1427,7 +1427,7 @@ PODS:
     - React-logger (= 0.74.5)
     - React-perflogger (= 0.74.5)
     - React-utils (= 0.74.5)
-  - RNCAsyncStorage (2.0.0):
+  - RNCAsyncStorage (1.23.1):
     - React-Core
   - RNCPicker (2.7.5):
     - React-Core
@@ -1803,7 +1803,7 @@ SPEC CHECKSUMS:
   React-runtimescheduler: cfbe85c3510c541ec6dc815c7729b41304b67961
   React-utils: f242eb7e7889419d979ca0e1c02ccc0ea6e43b29
   ReactCommon: f7da14a8827b72704169a48c929bcde802698361
-  RNCAsyncStorage: d35c79ffba52c1013013e16b1fc295aec2feabb6
+  RNCAsyncStorage: 826b603ae9c0f88b5ac4e956801f755109fa4d5c
   RNCPicker: 3e2c37a8328f368ce14da050cdc8231deb5fc9f9
   RNGoogleMobileAds: a0fb137c1e7f5f4227a1143f3ac7853abc7f04f1
   RNScreens: b32a9ff15bea7fcdbe5dff6477bc503f792b1208

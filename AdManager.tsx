@@ -33,15 +33,15 @@ const AD_CONFIG = {
     : {
         // 本番環境用の広告ID（実際のIDに置き換える必要があります）
         BANNER: Platform.select({
-          ios: 'ca-app-pub-9406489822776534/6498597454',
+          ios: 'ca-app-pub-9406489822776534/4429950234',
           android: 'YOUR_ANDROID_BANNER_AD_UNIT_ID',
         }) as string,
         INTERSTITIAL: Platform.select({
-          ios: 'ca-app-pub-9406489822776534/6235717467',
+          ios: 'ca-app-pub-9406489822776534/5770952069',
           android: 'YOUR_ANDROID_INTERSTITIAL_AD_UNIT_ID',
         }) as string,
         REWARDED_INTERSTITIAL: Platform.select({
-          ios: 'ca-app-pub-9406489822776534/2104891023',
+          ios: 'ca-app-pub-9406489822776534/3718539760',
           android: 'YOUR_ANDROID_REWARDED_INTERSTITIAL_AD_UNIT_ID',
         }) as string,
       },
@@ -85,62 +85,58 @@ export const AdManagerProvider: React.FC<AdManagerProviderProps> = ({ children }
   const interstitial = useRef<InterstitialAd | null>(null);
   const rewardedInterstitial = useRef<RewardedInterstitialAd | null>(null);
 
-  // AdMob SDKの初期化
-  const initializeAdMob = useCallback(async (retryAttempt = 0): Promise<boolean> => {
-    try {
-      // iOSの場合、トラッキング許可を求める
-      if (Platform.OS === 'ios') {
-        const { status } = await requestTrackingPermissionsAsync();
-        trackingAuthorized.current = status === 'granted';
-      } else {
-        trackingAuthorized.current = true;
-      }
+// ATT要求を別関数として分離
+const requestATTPermission = async () => {
+  if (Platform.OS === 'ios') {
+    const { status } = await requestTrackingPermissionsAsync();
+    trackingAuthorized.current = status === 'granted';
+    console.log('ATT status:', status);
+    return status;
+  }
+  return 'not_ios';
+};
 
-      //await requestUserConsent();
-      await MobileAds().initialize();
-      setSdkInitialized(true);
-      console.log('AdMob SDKが正常に初期化されました');
-      return true;
-    } catch (error) {
-      console.error(`AdMob SDKの初期化中にエラーが発生しました (試行 ${retryAttempt + 1}/${AD_CONFIG.MAX_RETRY_ATTEMPTS}):`, error);
+// AdMob初期化関数を修正
+const initializeAdMob = useCallback(async (retryAttempt = 0): Promise<boolean> => {
+  try {
+    await MobileAds().initialize();
+    setSdkInitialized(true);
+    console.log('AdMob SDKが正常に初期化されました');
+    return true;
+  } catch (error) {
+    console.error(`AdMob SDKの初期化中にエラーが発生しました (試行 ${retryAttempt + 1}/${AD_CONFIG.MAX_RETRY_ATTEMPTS}):`, error);
 
-      // 最大試行回数に達していない場合、再試行
-      if (retryAttempt < AD_CONFIG.MAX_RETRY_ATTEMPTS - 1) {
-        console.log(`${AD_CONFIG.RETRY_DELAY / 1000}秒後に再試行します...`);
-        await new Promise(resolve => setTimeout(resolve, AD_CONFIG.RETRY_DELAY));
-        return initializeAdMob(retryAttempt + 1);
-      } else {
-        console.error('最大試行回数に達しました。AdMob SDKの初期化に失敗しました。');
-        return false;
-      }
+    if (retryAttempt < AD_CONFIG.MAX_RETRY_ATTEMPTS - 1) {
+      console.log(`${AD_CONFIG.RETRY_DELAY / 1000}秒後に再試行します...`);
+      await new Promise(resolve => setTimeout(resolve, AD_CONFIG.RETRY_DELAY));
+      return initializeAdMob(retryAttempt + 1);
+    } else {
+      console.error('最大試行回数に達しました。AdMob SDKの初期化に失敗しました。');
+      return false;
     }
-  }, []);
+  }
+}, []);
 
-  // // ユーザーの同意を求める関数
-  // const requestUserConsent = async () => {
-  //   const hasConsent = await AsyncStorage.getItem('userConsent');
-  //   if (hasConsent !== 'true') {
-  //     // TODO: ユーザーの同意を得るUIを表示するロジックを実装
-  //     const userConsented = true; // 仮の実装
-  //     if (userConsented) {
-  //       await AsyncStorage.setItem('userConsent', 'true');
-  //     }
-  //   }
-  // };
+// 初期化処理を修正
+useEffect(() => {
+  const initializeApp = async () => {
+    // 1. まずATTを要求
+    await requestATTPermission();
+    
+    // 2. その後でAdMobを初期化
+    await initializeAdMob();
+  };
 
-  // 初期化処理
-  useEffect(() => {
-    initializeAdMob();
+  initializeApp();
 
-    // ネットワーク状態の監視
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsOnline(!!state.isConnected);
-    });
+  const unsubscribe = NetInfo.addEventListener(state => {
+    setIsOnline(!!state.isConnected);
+  });
 
-    return () => {
-      unsubscribe();
-    };
-  }, [initializeAdMob]);
+  return () => {
+    unsubscribe();
+  };
+}, [initializeAdMob]);
 
   // 広告のロードをタイムアウト付きで実行する関数
   const loadAdWithTimeout = useCallback((loadFunction: () => void) => {

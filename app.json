@@ -2,7 +2,7 @@
   "expo": {
     "name": "野菜価格",
     "slug": "vegetable",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon_1016.png",
     "userInterfaceStyle": "light",
@@ -36,7 +36,7 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "androidAppId": "ca-app-pub-9406489822776534~2824260498",
           "iosAppId": "ca-app-pub-9406489822776534~8381129539"
         }
       ]
