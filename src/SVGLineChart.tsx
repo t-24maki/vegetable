@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableWithoutFeedback, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Path, Circle, Line, Text as SvgText, G } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Text as SvgText, G, Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 
 interface DataPoint {
   x: number;
@@ -18,8 +18,6 @@ interface SVGLineChartProps {
 
 const SVGLineChart: React.FC<SVGLineChartProps> = ({ data, width, height, padding, xAxisLabel, yAxisLabel }) => {
   const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null);
-
-  // 左側のパディングを増やす
   const leftPadding = padding + 20;
 
   const { xMin, xMax, yMin, yMax, yTickInterval } = useMemo(() => {
@@ -34,7 +32,7 @@ const SVGLineChart: React.FC<SVGLineChartProps> = ({ data, width, height, paddin
       yTickInterval = 500;
     } else if (yRange >= 1500) {
       yTickInterval = 200;
-    } else if (yRange >= 600) {
+    } else if (yRange >= 500) {
       yTickInterval = 100;
     } else if (yRange >= 100) {
       yTickInterval = 50;
@@ -51,8 +49,6 @@ const SVGLineChart: React.FC<SVGLineChartProps> = ({ data, width, height, paddin
   const xScale = (x: number) => (x - xMin) / (xMax - xMin) * (width - leftPadding - padding) + leftPadding;
   const yScale = (y: number) => height - ((y - yMin) / (yMax - yMin) * (height - 2 * padding) + padding);
 
-  const linePath = data.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xScale(p.x)} ${yScale(p.y)}`).join(' ');
-
   const handlePress = (event: any) => {
     const { locationX, locationY } = event.nativeEvent;
     const closestPoint = data.reduce((closest, point) => {
@@ -63,10 +59,13 @@ const SVGLineChart: React.FC<SVGLineChartProps> = ({ data, width, height, paddin
     setSelectedPoint(closestPoint.point);
   };
 
-  // X軸の目盛りを生成
-  const xTicks = Array.from({ length: 5 }, (_, i) => xMin + (xMax - xMin) * i / 4);
+  // Area path for gradient background
+  const areaPath = useMemo(() => {
+    const linePath = data.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xScale(p.x)} ${yScale(p.y)}`).join(' ');
+    return `${linePath} L ${xScale(data[data.length - 1].x)} ${height - padding} L ${xScale(data[0].x)} ${height - padding} Z`;
+  }, [data, height, padding]);
 
-  // Y軸の目盛りを動的な間隔で生成
+  const xTicks = Array.from({ length: 5 }, (_, i) => xMin + (xMax - xMin) * i / 4);
   const yTicks = Array.from({ length: Math.floor((yMax - yMin) / yTickInterval) + 1 }, (_, i) => yMin + i * yTickInterval);
 
   const formatDate = (timestamp: number) => {
@@ -74,106 +73,168 @@ const SVGLineChart: React.FC<SVGLineChartProps> = ({ data, width, height, paddin
     return `${date.getFullYear().toString().substr(-2)}/${(date.getMonth() + 1).toString().padStart(2, '0')}`;
   };
 
-  // 数値を3桁カンマ区切りにフォーマットする関数
-  const formatNumber = (num: number) => {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
+  const formatNumber = (num: number) => num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
   return (
     <TouchableWithoutFeedback onPress={handlePress}>
-      <View>
+      <View style={{
+        backgroundColor: '#FFFFFF',
+        borderRadius: 8,
+        padding: 8,
+      }}>
         <Svg width={width} height={height}>
-          {/* X軸 */}
-          <Line x1={leftPadding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="black" />
-          <SvgText x={width / 2} y={height - 5} fontSize="12" textAnchor="middle">{xAxisLabel}</SvgText>
+          <Defs>
+            <LinearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#2196F3" stopOpacity="1" />
+              <Stop offset="1" stopColor="#4CAF50" stopOpacity="1" />
+            </LinearGradient>
+            
+            <LinearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#2196F3" stopOpacity="0.2" />
+              <Stop offset="1" stopColor="#4CAF50" stopOpacity="0.05" />
+            </LinearGradient>
+          </Defs>
 
-          {/* X軸の目盛り */}
+          {yTicks.map((tick, index) => (
+            <Line
+              key={`grid-${index}`}
+              x1={leftPadding}
+              y1={yScale(tick)}
+              x2={width - padding}
+              y2={yScale(tick)}
+              stroke="#E0E0E0"
+              strokeWidth="1"
+              strokeDasharray="5,5"
+            />
+          ))}
+
+          <Path
+            d={areaPath}
+            fill="url(#areaGradient)"
+          />
+
+          <Path
+            d={data.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xScale(p.x)} ${yScale(p.y)}`).join(' ')}
+            stroke="url(#lineGradient)"
+            strokeWidth="3"
+            fill="none"
+          />
+
+          <Line
+            x1={leftPadding}
+            y1={height - padding}
+            x2={width - padding}
+            y2={height - padding}
+            stroke="#90A4AE"
+            strokeWidth="2"
+          />
+
+          <Line
+            x1={leftPadding}
+            y1={padding}
+            x2={leftPadding}
+            y2={height - padding}
+            stroke="#90A4AE"
+            strokeWidth="2"
+          />
+
           {xTicks.map((tick, index) => (
-            <React.Fragment key={index}>
+            <G key={`x-tick-${index}`}>
               <Line
                 x1={xScale(tick)}
                 y1={height - padding}
                 x2={xScale(tick)}
                 y2={height - padding + 5}
-                stroke="black"
+                stroke="#90A4AE"
               />
               <SvgText
                 x={xScale(tick)}
-                y={height - padding + 15}
-                fontSize="10"
+                y={height - padding + 20}
+                fontSize="12"
+                fill="#546E7A"
                 textAnchor="middle"
               >
                 {formatDate(tick)}
               </SvgText>
-            </React.Fragment>
+            </G>
           ))}
 
-          {/* Y軸 */}
-          <Line x1={leftPadding} y1={padding} x2={leftPadding} y2={height - padding} stroke="black" />
-          
-          {/* Y軸のラベル */}
-          <G rotation="-90" origin={`${padding-20}, ${height / 2}`}>
-            <SvgText
-              x={padding}
-              y={height / 2}
-              fontSize="12"
-              textAnchor="middle"
-            >
-              価格(円/kg)
-            </SvgText>
-          </G>
-
-          {/* Y軸の目盛り */}
           {yTicks.map((tick, index) => (
-            <React.Fragment key={index}>
-              <Line
-                x1={leftPadding - 5}
-                y1={yScale(tick)}
-                x2={leftPadding}
-                y2={yScale(tick)}
-                stroke="black"
-              />
+            <G key={`y-tick-${index}`}>
               <SvgText
-                x={leftPadding - 10}
-                y={yScale(tick)}
-                fontSize="10"
+                x={leftPadding - 8}
+                y={yScale(tick) + 4}
+                fontSize="12"
+                fill="#546E7A"
                 textAnchor="end"
               >
                 {formatNumber(tick)}
               </SvgText>
-            </React.Fragment>
+            </G>
           ))}
 
-          {/* データポイントをつなぐライン */}
-          <Path d={linePath} fill="none" stroke="blue" strokeWidth="2" />
+        <G rotation="-90" origin={`${padding-20}, ${height / 2}`}>
+          <SvgText
+            x={padding-20}
+            y={height / 2}
+            fontSize="12"
+            fill="#546E7A"
+            textAnchor="middle"
+          >
+            価格(円/kg)
+          </SvgText>
+        </G>
 
-          {/* データポイント */}
           {data.map((point, index) => (
             <Circle
-              key={index}
+              key={`point-${index}`}
               cx={xScale(point.x)}
               cy={yScale(point.y)}
-              r="4"
-              fill="blue"
+              r="3"
+              fill="#FFFFFF"
+              stroke="#2196F3"
+              strokeWidth="2"
             />
           ))}
 
-          {/* 選択されたポイントのハイライト */}
           {selectedPoint && (
             <Circle
               cx={xScale(selectedPoint.x)}
               cy={yScale(selectedPoint.y)}
-              r="6"
-              fill="red"
+              r="5"
+              fill="#FF5722"
+              stroke="#FFFFFF"
+              strokeWidth="2"
             />
           )}
         </Svg>
 
-        {/* 選択されたポイントの情報表示 */}
         {selectedPoint && (
-          <View style={styles.infoBox}>
-            <Text>時期: 20{formatDate(selectedPoint.x)}</Text>
-            <Text>価格: {formatNumber(selectedPoint.y)}円/kg</Text>
+          <View style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            padding: 12,
+            borderRadius: 8,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 3,
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+              <Text style={{ fontSize: 12, color: '#546E7A', marginRight: 8 }}>時期:</Text>
+              <Text style={{ fontSize: 14, color: '#263238', fontWeight: '600' }}>
+                20{formatDate(selectedPoint.x)}
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+              <Text style={{ fontSize: 12, color: '#546E7A', marginRight: 8 }}>価格:</Text>
+              <Text style={{ fontSize: 14, color: '#263238', fontWeight: '600' }}>
+                {formatNumber(selectedPoint.y)}円/kg
+              </Text>
+            </View>
           </View>
         )}
       </View>
@@ -182,15 +243,38 @@ const SVGLineChart: React.FC<SVGLineChartProps> = ({ data, width, height, paddin
 };
 
 const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 8,
+  },
   infoBox: {
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: 'gray',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    padding: 12,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#546E7A',
+    marginRight: 8,
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#263238',
+    fontWeight: '600',
   },
 });
 

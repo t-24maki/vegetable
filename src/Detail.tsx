@@ -21,6 +21,7 @@ import SVGLineChart from './SVGLineChart';
 import { UnlockManager } from './UnlockManager';
 import { useAdManager } from '../AdManager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SeasonalIndicator from './SeasonalComponent';
 
 interface PriceData {
   [key: string]: {
@@ -136,6 +137,15 @@ const PriceTrendChart: React.FC = () => {
 
   const adManager = useAdManager();
 
+    // UnlockManagerの初期化用Effect
+    useEffect(() => {
+      UnlockManager.initialize(); // UnlockManagerを初期化
+      
+      return () => {
+        UnlockManager.destroy(); // クリーンアップ
+      };
+    }, []);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -167,7 +177,7 @@ const handleUnlock = async (vegetableName: string) => {
     }
   } catch (error) {
     console.error('Failed to unlock:', error);
-    Alert.alert('エラー', 'ロック解除に失敗しました。もう一度お試しください。');
+    Alert.alert('エラー', '広告の準備に失敗しました。もう一度お試しください。');
   }
 };
 
@@ -221,7 +231,7 @@ const handleUnlock = async (vegetableName: string) => {
       const lastYearRateKey = rateTypes.find(type => type.includes('例年') || type.includes('昨年')) || '';
 
       // 非活性にする野菜のリスト
-      const disabledVegetables = ['レタス', 'にんじん','キャベツ','ねぎ'];
+      const disabledVegetables = ['レタス', 'にんじん','キャベツ','ねぎ','トマト','きゅうり'];
 
       // vegListの定義を更新
       const vegList = Object.keys(priceJson)
@@ -293,13 +303,13 @@ const handleUnlock = async (vegetableName: string) => {
       switch (sortOption) {
         case '50音順':
           return replaceItemName(item.name);
-        case `${rateTypes.lastMonth}（高い順）`:
-          return -(item.lastMonthRate || 0);
         case `${rateTypes.lastMonth}（低い順）`:
+          return -(item.lastMonthRate || 0);
+        case `${rateTypes.lastMonth}（高い順）`:
           return (item.lastMonthRate || 0);
-        case `${rateTypes.lastYear}（高い順）`:
-          return -(item.lastYearRate || 0);
         case `${rateTypes.lastYear}（低い順）`:
+          return -(item.lastYearRate || 0);
+        case `${rateTypes.lastYear}（高い順）`:
           return (item.lastYearRate || 0);
         default:
           return 0;
@@ -361,19 +371,26 @@ const handleUnlock = async (vegetableName: string) => {
     const unlockedUntil = unlockedVegetables[item.name]?.unlockedUntil;
     
     return (
-      <View style={[styles.itemContainer, item.isExpanded && styles.itemContainerExpanded]}>
+      <View style={[
+        styles.itemContainer, 
+        item.isExpanded && styles.itemContainerExpanded,
+        // ロック項目の高さを1.5倍に
+        isLocked && { height: 80 }  // 通常の高さの1.5倍程度
+      ]}>
         <TouchableOpacity 
           onPress={() => !isLocked && toggleExpand(index)} 
-          style={styles.itemHeader}
+          style={[
+            styles.itemHeader,
+            // ロック項目のヘッダーも高さを調整
+            isLocked && { height: 80 }
+          ]}
           disabled={isLocked}
         >
           <View style={styles.itemTitleContainer}>
-            <Text style={styles.itemTitle}>{replaceItemName(item.name)}</Text>
-            {/* {unlockedUntil && (
-              <Text style={styles.unlockTimeRemaining}>
-                残り: {UnlockManager.getRemainingTime(unlockedUntil)}
-              </Text>
-            )} */}
+            <View style={styles.titleRow}>
+              <Text style={styles.itemTitle}>{replaceItemName(item.name)}</Text>
+              <SeasonalIndicator itemName={item.name} />
+            </View>
           </View>
           <View style={styles.ratesContainer}>
             <RateDisplay rate={item.lastMonthRate} isDisabled={isLocked} />
@@ -401,7 +418,10 @@ const handleUnlock = async (vegetableName: string) => {
         )}
         {isLocked && (
           <TouchableOpacity 
-            style={styles.disabledOverlay}
+            style={[
+              styles.disabledOverlay,
+              { height: 80 }  // overlayの高さも調整
+            ]}
             onPress={() => handleUnlock(item.name)}
           >
             <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
@@ -430,10 +450,10 @@ const handleUnlock = async (vegetableName: string) => {
 
   const sortOptions: SortOption[] = [
     '50音順',
-    `${rateTypes.lastMonth}（高い順）`,
     `${rateTypes.lastMonth}（低い順）`,
-    `${rateTypes.lastYear}（高い順）`,
-    `${rateTypes.lastYear}（低い順）`
+    `${rateTypes.lastMonth}（高い順）`,
+    `${rateTypes.lastYear}（低い順）`,
+    `${rateTypes.lastYear}（高い順）`
   ];
 
   const InfoBox = () => (
@@ -490,6 +510,11 @@ const handleUnlock = async (vegetableName: string) => {
 
 
 const styles = StyleSheet.create({
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+  },
   unlockTimeRemaining: {
     fontSize: 12,
     color: '#666666',
@@ -498,7 +523,8 @@ const styles = StyleSheet.create({
   unlockText: {
     color: '#FFFFFF',
     marginTop: 8,
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: '500',
   },
   disabledOverlay: {
     position: 'absolute',

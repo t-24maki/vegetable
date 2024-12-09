@@ -2,7 +2,7 @@
   "expo": {
     "name": "野菜価格",
     "slug": "vegetable",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon_1016.png",
     "userInterfaceStyle": "light",
@@ -15,6 +15,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "ja_JP",
+        "CFBundleLocalizations": ["ja"],
+        "CFBundlePrimaryLanguage": "ja"
+      },
       "supportsTablet": true,
       "bundleIdentifier": "com.rollapps.vegetable"
     },

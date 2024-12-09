@@ -198,23 +198,44 @@ useEffect(() => {
 // リワード付きインタースティシャル広告のロード
 const loadRewardedInterstitialAd = useCallback(async () => {
   console.log('リワード付きインタースティシャル広告のロードを開始します');
-  try {
-    await loadAdWithTimeout(() => {
-      rewardedInterstitial.current?.load();
-      console.log('リワード付きインタースティシャル広告のロードを開始しました');
-    });
-    setRewardedInterstitialAdReady(true);
-    console.log('リワード付きインタースティシャル広告のロードが完了しました');
-  } catch (error) {
-    console.error('リワード付きインタースティシャル広告のロードに失敗:', error);
-    setRewardedInterstitialAdReady(false);
-    Alert.alert(
-      "広告読み込みに失敗しました",
-      "申し訳ございません。後でもう一度お試しください。",
-      [{ text: "OK" }]
+  return new Promise<void>((resolve, reject) => {
+    if (!rewardedInterstitial.current) {
+      rewardedInterstitial.current = RewardedInterstitialAd.createForAdRequest(
+        AD_CONFIG.AD_UNIT_IDS.REWARDED_INTERSTITIAL,
+        {
+          requestNonPersonalizedAdsOnly: !trackingAuthorized.current,
+        }
+      );
+    }
+
+    const loadedListener = rewardedInterstitial.current.addAdEventListener(
+      RewardedAdEventType.LOADED,
+      () => {
+        console.log('リワード付きインタースティシャル広告が実際にロードされました');
+        setRewardedInterstitialAdReady(true);
+        loadedListener();
+        resolve();
+      }
     );
-  }
-}, [loadAdWithTimeout]);
+
+    const errorListener = rewardedInterstitial.current.addAdEventListener(
+      AdEventType.ERROR,
+      (error) => {
+        console.error('リワード付きインタースティシャル広告のロードエラー:', error);
+        setRewardedInterstitialAdReady(false);
+        errorListener();
+        reject(error);
+      }
+    );
+
+    try {
+      rewardedInterstitial.current.load();
+    } catch (error) {
+      console.error('広告ロード時のエラー:', error);
+      reject(error);
+    }
+  });
+}, []);
 
 // 広告のセットアップ
 useEffect(() => {
@@ -326,20 +347,25 @@ const showInterstitialAd = useCallback(async () => {
 }, [showAd, loadInterstitialAd]);
 
 
-// リワード付きインタースティシャル広告を表示する関数
+// showRewardedInterstitialAd関数も修正
 const showRewardedInterstitialAd = useCallback(async (): Promise<boolean> => {
-  const showAdUnavailableMessage = () => {
-    Alert.alert(
-      "広告表示に失敗しました",
-      "申し訳ありません。後でもう一度お試しください。",
-      [{ text: "OK" }]
-    );
-  };
-
+  console.log('広告表示開始: 準備状態=', rewardedInterstitialAdReady);
+  
   if (!rewardedInterstitialAdReady || !rewardedInterstitial.current) {
-    showAdUnavailableMessage();
-    loadRewardedInterstitialAd(); // 広告が準備できていない場合も、新しい広告をロード
-    return false;
+    console.log('広告がロードされていないため、ロードを試みます');
+    try {
+      await loadRewardedInterstitialAd();
+      // ロード完了を待つ
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (error) {
+      console.error('広告ロードに失敗:', error);
+      Alert.alert(
+        "エラー",
+        "広告の準備に失敗しました。もう一度お試しください。",
+        [{ text: "OK" }]
+      );
+      return false;
+    }
   }
 
   let rewardEarned = false;
@@ -347,35 +373,65 @@ const showRewardedInterstitialAd = useCallback(async (): Promise<boolean> => {
     const rewardListener = rewardedInterstitial.current?.addAdEventListener(
       RewardedAdEventType.EARNED_REWARD,
       (reward: RewardedAdReward) => {
-        console.log('ユーザーが報酬を獲得しました:', reward);
+        console.log('報酬獲得:', reward);
         rewardEarned = true;
-        // TODO: ここで報酬を付与するロジックを実装
       }
     );
 
     const closedListener = rewardedInterstitial.current?.addAdEventListener(
       AdEventType.CLOSED,
       () => {
+        console.log('広告が閉じられました');
         setRewardedInterstitialAdReady(false);
-        loadRewardedInterstitialAd(); // 広告が閉じられた後に新しい広告をロード
+        loadRewardedInterstitialAd(); // 次の広告をプリロード
         resolve(rewardEarned);
+        closedListener?.();
+        rewardListener?.();
       }
     );
 
-    rewardedInterstitial.current?.show().catch((error) => {
-      console.error('リワード付きインタースティシャル広告の表示に失敗:', error);
-      showAdUnavailableMessage();
-      loadRewardedInterstitialAd(); // エラーが発生した場合も、新しい広告をロード
-      resolve(false);
-    });
+    const errorListener = rewardedInterstitial.current?.addAdEventListener(
+      AdEventType.ERROR,
+      (error) => {
+        console.error('広告表示エラー:', error);
+        setRewardedInterstitialAdReady(false);
+        loadRewardedInterstitialAd();
+        resolve(false);
+        errorListener?.();
+      }
+    );
 
-    // イベントリスナーのクリーンアップ
-    return () => {
-      rewardListener && rewardListener();
-      closedListener && closedListener();
-    };
+    try {
+      console.log('広告表示を実行します');
+      rewardedInterstitial.current?.show().catch((error) => {
+        console.error('広告表示に失敗:', error);
+        setRewardedInterstitialAdReady(false);
+        loadRewardedInterstitialAd();
+        resolve(false);
+      });
+    } catch (error) {
+      console.error('予期せぬエラー:', error);
+      resolve(false);
+    }
   });
-}, [rewardedInterstitialAdReady, rewardedInterstitial, loadRewardedInterstitialAd]);
+}, [rewardedInterstitialAdReady, loadRewardedInterstitialAd]);
+
+
+// useEffectでの初期設定も修正
+useEffect(() => {
+  if (sdkInitialized) {
+    // 初期化時に広告をロード
+    const initAds = async () => {
+      try {
+        await loadRewardedInterstitialAd();
+        console.log('初期広告のロードに成功しました');
+      } catch (error) {
+        console.error('初期広告のロードに失敗:', error);
+      }
+    };
+    initAds();
+  }
+}, [sdkInitialized]);
 
 
   // バナー広告のレンダリング
