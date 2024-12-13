@@ -22,6 +22,7 @@ import { UnlockManager } from './UnlockManager';
 import { useAdManager } from '../AdManager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeasonalIndicator from './SeasonalComponent';
+import StorageComponent from './StorageComponent';
 
 interface PriceData {
   [key: string]: {
@@ -170,7 +171,7 @@ const handleUnlock = async (vegetableName: string) => {
         // ソートはuseEffectで自動的に実行されるため、ここでは実行しない
         Alert.alert(
           "ロック解除完了",
-          `${replaceItemName(vegetableName)}の価格が12時間確認できるようになりました！`,
+          `${replaceItemName(vegetableName)}の情報が12時間確認できるようになりました！`,
           [{ text: "OK", style: "default" }]
         );
       }
@@ -365,23 +366,41 @@ const handleUnlock = async (vegetableName: string) => {
     };
     return replacements[name] || name;
   };
+
+  const RateDisplay: React.FC<RateDisplayProps> = ({ rate, isDisabled }) => {
+    if (isDisabled) {
+      return null;
+    }
+  
+    const image = rate ? getTrendArrow(rate) : arrowMiddle;
+    
+    return (
+      <View style={styles.rateColumn}>
+        <View style={styles.rateValueContainer}>
+          <Image source={image} style={styles.trendArrow} />
+          <Text style={styles.rateValue}>
+            {rate ? (rate * 100).toFixed(1) + '%' : 'N/A'}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+  
+
   
   const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => {
     const isLocked = item.isDisabled && !unlockedVegetables[item.name];
-    const unlockedUntil = unlockedVegetables[item.name]?.unlockedUntil;
     
     return (
       <View style={[
         styles.itemContainer, 
         item.isExpanded && styles.itemContainerExpanded,
-        // ロック項目の高さを1.5倍に
-        isLocked && { height: 80 }  // 通常の高さの1.5倍程度
+        isLocked && { height: 80 }
       ]}>
         <TouchableOpacity 
           onPress={() => !isLocked && toggleExpand(index)} 
           style={[
             styles.itemHeader,
-            // ロック項目のヘッダーも高さを調整
             isLocked && { height: 80 }
           ]}
           disabled={isLocked}
@@ -389,7 +408,17 @@ const handleUnlock = async (vegetableName: string) => {
           <View style={styles.itemTitleContainer}>
             <View style={styles.titleRow}>
               <Text style={styles.itemTitle}>{replaceItemName(item.name)}</Text>
-              <SeasonalIndicator itemName={item.name} />
+              <SeasonalIndicator 
+                itemName={item.name}
+                isLocked={isLocked}
+              />
+              {!isLocked && item.isDisabled && (
+                <UnlockTimeDisplay 
+                  itemName={item.name}
+                  unlockedVegetables={unlockedVegetables}
+                  onExpire={handleUnlockExpire}
+                />
+              )}
             </View>
           </View>
           <View style={styles.ratesContainer}>
@@ -404,8 +433,10 @@ const handleUnlock = async (vegetableName: string) => {
             />
           )}
         </TouchableOpacity>
+  
         {item.isExpanded && !isLocked && (
           <View style={styles.chartContainer}>
+            <StorageComponent itemName={item.name} />
             <SVGLineChart
               data={processData(item.name)}
               width={screenWidth - 40}
@@ -416,11 +447,12 @@ const handleUnlock = async (vegetableName: string) => {
             />
           </View>
         )}
+  
         {isLocked && (
           <TouchableOpacity 
             style={[
               styles.disabledOverlay,
-              { height: 80 }  // overlayの高さも調整
+              { height: 80 }
             ]}
             onPress={() => handleUnlock(item.name)}
           >
@@ -430,6 +462,63 @@ const handleUnlock = async (vegetableName: string) => {
         )}
       </View>
     );
+  };
+  
+  const UnlockTimeDisplay: React.FC<{ 
+    itemName: string, 
+    unlockedVegetables: UnlockedVegetable,
+    onExpire: (itemName: string) => void  // 有効期限切れ時のコールバックを追加
+  }> = ({ itemName, unlockedVegetables, onExpire }) => {
+    const [remainingTime, setRemainingTime] = useState<string>('');
+  
+    useEffect(() => {
+      const updateTime = () => {
+        if (unlockedVegetables[itemName]) {
+          const unlockedUntil = unlockedVegetables[itemName].unlockedUntil;
+          const remaining = unlockedUntil - Date.now();
+          
+          if (remaining <= 0) {
+            setRemainingTime('');
+            onExpire(itemName);  // 期限切れ時にコールバックを呼び出す
+            return;
+          }
+  
+          const minutes = Math.floor(remaining / (60 * 1000));
+          const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
+          //setRemainingTime(`残り ${minutes}分${seconds}秒`); //残り時間を表示する場合
+        }
+      };
+  
+      const timer = setInterval(updateTime, 1000);
+      updateTime(); // 初期表示
+  
+      return () => clearInterval(timer);
+    }, [itemName, unlockedVegetables, onExpire]);
+  
+    if (!remainingTime) return null;
+  
+    return (
+      <Text style={styles.remainingTimeText}>{remainingTime}</Text>
+    );
+  };
+  
+  // PriceTrendChartコンポーネント内で以下の関数を追加
+  const handleUnlockExpire = async (itemName: string) => {
+    try {
+      // AsyncStorageから現在のunlockedVegetablesを取得
+      const currentUnlocked = await AsyncStorage.getItem('unlockedVegetables');
+      if (currentUnlocked) {
+        const unlockData = JSON.parse(currentUnlocked);
+        // 期限切れのアイテムを削除
+        delete unlockData[itemName];
+        // 更新したデータを保存
+        await AsyncStorage.setItem('unlockedVegetables', JSON.stringify(unlockData));
+        // 状態を更新
+        setUnlockedVegetables(unlockData);
+      }
+    } catch (error) {
+      console.error('Failed to handle unlock expiration:', error);
+    }
   };
 
   if (error) {
@@ -461,7 +550,7 @@ const handleUnlock = async (vegetableName: string) => {
       <View style={styles.infoBox}>
         <Ionicons name="information-circle-outline" size={24} color="#007AFF" style={styles.infoIcon} />
         <Text style={styles.infoText}>
-          本アプリは現在試用版です。集計対象の野菜／果物は随時追加されます。
+          野菜／果物は随時追加中です！
         </Text>
       </View>
     </View>
@@ -510,10 +599,25 @@ const handleUnlock = async (vegetableName: string) => {
 
 
 const styles = StyleSheet.create({
+  remainingTimeText: {
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
   titleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center', // 上下中央揃え
     flexWrap: 'wrap',
+  },
+  itemTitleContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#333333',
   },
   unlockTimeRemaining: {
     fontSize: 12,
@@ -578,11 +682,6 @@ const styles = StyleSheet.create({
   },
   adSpace: {
     height: 40, // バナー広告の高さ + 追加のパディング
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333333',
   },
   ratesContainer: {
     flexDirection: 'row',
@@ -750,10 +849,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666666',
     marginBottom: 4,
-  },
-  itemTitleContainer: {
-    flex: 1,
-    justifyContent: 'center',
   },
   rateText: {
     fontSize: 12,

@@ -6,7 +6,8 @@ interface UnlockData {
   };
 }
 
-const UNLOCK_DURATION = 12 * 60 * 60 * 1000; // 12時間（ミリ秒）
+//const UNLOCK_DURATION = 1 * 60 * 1000; // ミリ秒
+const UNLOCK_DURATION = 12 * 60 * 60 * 1000; // ミリ秒
 const UNLOCKED_VEGETABLES_KEY = 'unlockedVegetables';
 const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5分ごとにクリーンアップ
 

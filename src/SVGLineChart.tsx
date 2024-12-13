@@ -28,7 +28,7 @@ const SVGLineChart: React.FC<SVGLineChartProps> = ({ data, width, height, paddin
     const yRange = yMaxRaw - yMinRaw;
 
     let yTickInterval: number;
-    if (yRange >= 3000) {
+    if (yRange >= 2000) {
       yTickInterval = 500;
     } else if (yRange >= 1500) {
       yTickInterval = 200;
@@ -82,6 +82,15 @@ const SVGLineChart: React.FC<SVGLineChartProps> = ({ data, width, height, paddin
         borderRadius: 8,
         padding: 8,
       }}>
+      <Text style={{
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#263238',
+        marginBottom: 12,
+        textAlign: 'center'
+      }}>
+        【価格の推移】
+      </Text>
         <Svg width={width} height={height}>
           <Defs>
             <LinearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
