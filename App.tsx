@@ -6,11 +6,13 @@ import { AdManagerProvider } from './AdManager';
 import Detail from './src/Detail';
 import ProScreen from './src/ProScreen';
 import AppInfoScreen from './src/AppInfoScreen';
+import { ProProvider } from './src/ProContext';
 
 const Tab = createBottomTabNavigator();
 
 const App: React.FC = () => {
   return (
+    <ProProvider>
     <AdManagerProvider>
       <NavigationContainer>
         <Tab.Navigator
@@ -40,6 +42,7 @@ const App: React.FC = () => {
         </Tab.Navigator>
       </NavigationContainer>
     </AdManagerProvider>
+    </ProProvider>
   );
 };
 

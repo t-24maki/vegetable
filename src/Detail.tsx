@@ -23,6 +23,8 @@ import { useAdManager } from '../AdManager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeasonalIndicator from './SeasonalComponent';
 import StorageComponent from './StorageComponent';
+import { useProStatus } from './ProContext';
+
 
 interface PriceData {
   [key: string]: {
@@ -126,6 +128,7 @@ const SortButton: React.FC<{ sortOption: SortOption; onPress: () => void }> = ({
 );
 
 const PriceTrendChart: React.FC = () => {
+  const { isProUser } = useProStatus();
   const [priceData, setPriceData] = useState<PriceData | null>(null);
   const [rateData, setRateData] = useState<RateData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -137,6 +140,7 @@ const PriceTrendChart: React.FC = () => {
   const [unlockedVegetables, setUnlockedVegetables] = useState<UnlockedVegetable>({});
 
   const adManager = useAdManager();
+  
 
     // UnlockManagerの初期化用Effect
     useEffect(() => {
@@ -389,7 +393,7 @@ const handleUnlock = async (vegetableName: string) => {
 
   
   const renderItem = ({ item, index }: { item: VegetableItem; index: number }) => {
-    const isLocked = item.isDisabled && !unlockedVegetables[item.name];
+    const isLocked = !isProUser && item.isDisabled && !unlockedVegetables[item.name];
     
     return (
       <View style={[
@@ -412,7 +416,7 @@ const handleUnlock = async (vegetableName: string) => {
                 itemName={item.name}
                 isLocked={isLocked}
               />
-              {!isLocked && item.isDisabled && (
+              {!isLocked && item.isDisabled && !isProUser && (
                 <UnlockTimeDisplay 
                   itemName={item.name}
                   unlockedVegetables={unlockedVegetables}
@@ -448,7 +452,7 @@ const handleUnlock = async (vegetableName: string) => {
           </View>
         )}
   
-        {isLocked && (
+        {isLocked && !isProUser && (
           <TouchableOpacity 
             style={[
               styles.disabledOverlay,

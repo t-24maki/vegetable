@@ -9,8 +9,11 @@ import {
   Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useProStatus } from './ProContext';
 
 const ProScreen: React.FC = () => {
+  const { isProUser, setIsProUser } = useProStatus();
+
   const handlePurchasePress = () => {
     Alert.alert(
       'Pro版の購入',
@@ -27,55 +30,106 @@ const ProScreen: React.FC = () => {
     );
   };
 
+  // 開発用のProステータストグル機能
+  const handleToggleProStatus = () => {
+    setIsProUser(!isProUser);
+  };
+
+  const renderProContent = () => (
+    <View style={styles.content}>
+      <View style={styles.proHeader}>
+        <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
+        <Text style={styles.proHeaderTitle}>Pro版をご利用中</Text>
+      </View>
+      
+      <Text style={styles.proDescription}>
+        すべての機能をご利用いただけます。ご利用ありがとうございます！
+      </Text>
+
+      <View style={styles.featureSection}>
+        <Text style={styles.sectionTitle}>利用可能な機能</Text>
+        
+        <View style={styles.featureItem}>
+          <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+          <Text style={styles.featureText}>広告なしでアプリを利用可能</Text>
+        </View>
+
+        <View style={styles.featureItem}>
+          <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+          <Text style={styles.featureText}>すべての野菜・果物の情報にアクセス可能</Text>
+        </View>
+      </View>
+
+      <View style={styles.subscriptionInfo}>
+        <Text style={styles.subscriptionText}>契約プラン：月額プラン</Text>
+        <Text style={styles.subscriptionPrice}>¥300/月</Text>
+      </View>
+    </View>
+  );
+
+  const renderFreeContent = () => (
+    <View style={styles.content}>
+      <View style={styles.header}>
+        <Ionicons name="star" size={48} color="#FFD700" />
+        <Text style={styles.headerTitle}>Proモードのご案内</Text>
+      </View>
+
+      <Text style={styles.description}>
+        すべての野菜・果物の情報が確認し放題！
+      </Text>
+
+      <View style={styles.featureSection}>
+        <Text style={styles.sectionTitle}>Pro版の特徴</Text>
+        
+        <View style={styles.featureItem}>
+          <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+          <Text style={styles.featureText}>広告視聴なしで全ての野菜の情報が分かる</Text>
+        </View>
+
+        <View style={styles.featureItem}>
+          <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+          <Text style={styles.featureText}>その他、便利な機能を随時追加予定</Text>
+        </View>
+      </View>
+
+      <View style={styles.pricingSection}>
+        <Text style={styles.priceLabel}>価格</Text>
+        <View style={styles.priceContainer}>
+          <Text style={styles.price}>¥300</Text>
+          <Text style={styles.period}>/月</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={styles.purchaseButton}
+        onPress={handlePurchasePress}
+      >
+        <Text style={styles.purchaseButtonText}>Pro版を購入</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.restoreButton}
+        onPress={handleRestorePress}
+      >
+        <Text style={styles.restoreButtonText}>購入を復元</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* 開発用のProステータストグルボタン */}
+      {/* <TouchableOpacity
+        style={styles.debugButton}
+        onPress={handleToggleProStatus}
+      >
+        <Text style={styles.debugButtonText}>
+          {isProUser ? '[開発用] Pro → 無料版に切替' : '[開発用] 無料版 → Proに切替'}
+        </Text>
+      </TouchableOpacity> */}
+
       <ScrollView>
-        <View style={styles.header}>
-          <Ionicons name="star" size={48} color="#FFD700" />
-          <Text style={styles.headerTitle}>Proモードのご案内</Text>
-        </View>
-
-        <View style={styles.content}>
-          <Text style={styles.description}>
-            すべての野菜・果物の情報が確認し放題！
-          </Text>
-
-          <View style={styles.featureSection}>
-            <Text style={styles.sectionTitle}>Pro版の特徴</Text>
-            
-            <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-              <Text style={styles.featureText}>広告視聴なしで全ての野菜の情報が分かる</Text>
-            </View>
-
-            <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-              <Text style={styles.featureText}>その他、便利な機能を随時追加予定</Text>
-            </View>
-          </View>
-
-          <View style={styles.pricingSection}>
-            <Text style={styles.priceLabel}>価格</Text>
-            <View style={styles.priceContainer}>
-              <Text style={styles.price}>¥300</Text>
-              <Text style={styles.period}>/月</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.purchaseButton}
-            onPress={handlePurchasePress}
-          >
-            <Text style={styles.purchaseButtonText}>Pro版を購入</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.restoreButton}
-            onPress={handleRestorePress}
-          >
-            <Text style={styles.restoreButtonText}>購入を復元</Text>
-          </TouchableOpacity>
-        </View>
+        {isProUser ? renderProContent() : renderFreeContent()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -86,15 +140,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  // 開発用ボタンのスタイル
+  debugButton: {
+    backgroundColor: '#FFE0E0',
+    padding: 10,
+    margin: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  debugButtonText: {
+    color: '#FF0000',
+    fontSize: 14,
+  },
   header: {
     alignItems: 'center',
     padding: 24,
     backgroundColor: '#F8F9FA',
   },
+  proHeader: {
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#E8F5E9',
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#1A1A1A',
+    marginTop: 12,
+  },
+  proHeaderTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#2E7D32',
     marginTop: 12,
   },
   content: {
@@ -103,6 +180,13 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 16,
     color: '#666666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  proDescription: {
+    fontSize: 16,
+    color: '#2E7D32',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 24,
@@ -174,6 +258,22 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 16,
     fontWeight: '500',
+  },
+  subscriptionInfo: {
+    backgroundColor: '#F8F9FA',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 24,
+  },
+  subscriptionText: {
+    fontSize: 16,
+    color: '#666666',
+    marginBottom: 8,
+  },
+  subscriptionPrice: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
   },
 });
 
