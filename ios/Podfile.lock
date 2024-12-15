@@ -262,6 +262,8 @@ PODS:
   - hermes-engine (0.74.5):
     - hermes-engine/Pre-built (= 0.74.5)
   - hermes-engine/Pre-built (0.74.5)
+  - PurchasesHybridCommon (13.12.1):
+    - RevenueCat (= 5.12.1)
   - RCT-Folly (2024.01.01.00):
     - boost
     - DoubleConversion
@@ -1427,6 +1429,7 @@ PODS:
     - React-logger (= 0.74.5)
     - React-perflogger (= 0.74.5)
     - React-utils (= 0.74.5)
+  - RevenueCat (5.12.1)
   - RNCAsyncStorage (1.23.1):
     - React-Core
   - RNCPicker (2.7.5):
@@ -1454,6 +1457,9 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNPurchases (8.4.1):
+    - PurchasesHybridCommon (= 13.12.1)
+    - React-Core
   - RNScreens (3.31.1):
     - DoubleConversion
     - glog
@@ -1559,6 +1565,7 @@ DEPENDENCIES:
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
   - RNGoogleMobileAds (from `../node_modules/react-native-google-mobile-ads`)
+  - RNPurchases (from `../node_modules/react-native-purchases`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
@@ -1568,6 +1575,8 @@ SPEC REPOS:
     - DGCharts
     - Google-Mobile-Ads-SDK
     - GoogleUserMessagingPlatform
+    - PurchasesHybridCommon
+    - RevenueCat
     - SocketRocket
     - SwiftyJSON
 
@@ -1721,6 +1730,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-picker/picker"
   RNGoogleMobileAds:
     :path: "../node_modules/react-native-google-mobile-ads"
+  RNPurchases:
+    :path: "../node_modules/react-native-purchases"
   RNScreens:
     :path: "../node_modules/react-native-screens"
   RNSVG:
@@ -1753,6 +1764,7 @@ SPEC CHECKSUMS:
   Google-Mobile-Ads-SDK: 204b517c9765169144cf39763c7f5d23c57a9db0
   GoogleUserMessagingPlatform: 6b4f48a370e77ce121d034c908cc6ee4fdafaf13
   hermes-engine: 8c1577f3fdb849cbe7729c2e7b5abc4b845e88f8
+  PurchasesHybridCommon: 6c07c9abb12b96413ee583c017957f52f5f4ceaa
   RCT-Folly: 02617c592a293bd6d418e0a88ff4ee1f88329b47
   RCTDeprecation: 3afceddffa65aee666dafd6f0116f1d975db1584
   RCTRequired: ec1239bc9d8bf63e10fb92bd8b26171a9258e0c1
@@ -1803,9 +1815,11 @@ SPEC CHECKSUMS:
   React-runtimescheduler: cfbe85c3510c541ec6dc815c7729b41304b67961
   React-utils: f242eb7e7889419d979ca0e1c02ccc0ea6e43b29
   ReactCommon: f7da14a8827b72704169a48c929bcde802698361
+  RevenueCat: c6a6faaaab1ca8903416b36a51470cca0ea6b5b5
   RNCAsyncStorage: 826b603ae9c0f88b5ac4e956801f755109fa4d5c
   RNCPicker: 3e2c37a8328f368ce14da050cdc8231deb5fc9f9
   RNGoogleMobileAds: a0fb137c1e7f5f4227a1143f3ac7853abc7f04f1
+  RNPurchases: 280a5cfd58c42a3d77cf9e582195a3bc028f1254
   RNScreens: b32a9ff15bea7fcdbe5dff6477bc503f792b1208
   RNSVG: 43b64ed39c14ce830d840903774154ca0c1f27ec
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d

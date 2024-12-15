@@ -12,28 +12,36 @@ import { Ionicons } from '@expo/vector-icons';
 import { useProStatus } from './ProContext';
 
 const ProScreen: React.FC = () => {
-  const { isProUser, setIsProUser } = useProStatus();
+  const { isProUser, purchasePro, restorePurchases } = useProStatus();
 
-  const handlePurchasePress = () => {
-    Alert.alert(
-      'Pro版の購入',
-      '準備中です。今しばらくお待ちください。',
-      [{ text: 'OK', style: 'default' }]
-    );
+  const handlePurchasePress = async () => {
+    try {
+      await purchasePro();
+    } catch (error) {
+      Alert.alert(
+        'エラー',
+        '購入処理中にエラーが発生しました。',
+        [{ text: 'OK', style: 'default' }]
+      );
+    }
   };
 
-  const handleRestorePress = () => {
-    Alert.alert(
-      '購入の復元',
-      '準備中です。今しばらくお待ちください。',
-      [{ text: 'OK', style: 'default' }]
-    );
+  const handleRestorePress = async () => {
+    try {
+      await restorePurchases();
+    } catch (error) {
+      Alert.alert(
+        'エラー',
+        '購入の復元中にエラーが発生しました。',
+        [{ text: 'OK', style: 'default' }]
+      );
+    }
   };
 
   // 開発用のProステータストグル機能
-  const handleToggleProStatus = () => {
-    setIsProUser(!isProUser);
-  };
+  // const handleToggleProStatus = () => {
+  //   setIsProUser(!isProUser);
+  // };
 
   const renderProContent = () => (
     <View style={styles.content}>
