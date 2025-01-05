@@ -6,7 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Alert
+  Alert,
+  Linking
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useProStatus } from './ProContext';
@@ -38,16 +39,51 @@ const ProScreen: React.FC = () => {
     }
   };
 
-  // 開発用のProステータストグル機能
-  // const handleToggleProStatus = () => {
-  //   setIsProUser(!isProUser);
-  // };
+  const openPrivacyPolicy = () => {
+    Linking.openURL('https://t-24maki.github.io/vegetable-support/privacy-policy_JP.html'); // プライバシーポリシーのURLを設定
+  };
+
+  const openTermsOfUse = () => {
+    Linking.openURL('https://www.apple.com/legal/internet-services/itunes/jp/terms.html'); // 利用規約のURLを設定
+  };
+
+  const renderSubscriptionDetails = () => (
+    <View style={styles.subscriptionDetails}>
+      <Text style={styles.subscriptionDetailTitle}>サブスクリプション詳細</Text>
+      
+      {/* サブスクリプションの詳細情報 */}      
+      <View style={styles.detailItem}>
+        <Text style={styles.detailLabel}>期間:</Text>
+        <Text style={styles.detailValue}>1ヶ月間</Text>
+      </View>
+      
+      <View style={styles.detailItem}>
+        <Text style={styles.detailLabel}>価格:</Text>
+        <Text style={styles.detailValue}>¥300/月</Text>
+      </View>
+
+      {/* 自動更新に関する説明 */}
+      <Text style={styles.autoRenewalInfo}>
+        ※ サブスクリプションは自動的に更新されます。更新は現在の期間が終了する24時間前までにキャンセルできます。
+      </Text>
+      
+      {/* リンク */}
+      <View style={styles.legalLinks}>
+        <TouchableOpacity onPress={openPrivacyPolicy}>
+          <Text style={styles.legalLinkText}>プライバシーポリシー</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={openTermsOfUse}>
+          <Text style={styles.legalLinkText}>利用規約</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   const renderProContent = () => (
     <View style={styles.content}>
       <View style={styles.proHeader}>
         <Ionicons name="checkmark-circle" size={48} color="#4CAF50" />
-        <Text style={styles.proHeaderTitle}>Pro版をご利用中</Text>
+        <Text style={styles.proHeaderTitle}>Proモードをご利用中</Text>
       </View>
       
       <Text style={styles.proDescription}>
@@ -68,10 +104,7 @@ const ProScreen: React.FC = () => {
         </View>
       </View>
 
-      <View style={styles.subscriptionInfo}>
-        <Text style={styles.subscriptionText}>契約プラン：月額プラン</Text>
-        <Text style={styles.subscriptionPrice}>¥300/月</Text>
-      </View>
+      {renderSubscriptionDetails()}
     </View>
   );
 
@@ -82,37 +115,31 @@ const ProScreen: React.FC = () => {
         <Text style={styles.headerTitle}>Proモードのご案内</Text>
       </View>
 
-      <Text style={styles.description}>
+      {/* <Text style={styles.description}>
         すべての野菜・果物の情報が確認し放題！
-      </Text>
+      </Text> */}
 
       <View style={styles.featureSection}>
-        <Text style={styles.sectionTitle}>Pro版の特徴</Text>
+        {/* <Text style={styles.sectionTitle}>Pro版の特徴</Text> */}
         
         <View style={styles.featureItem}>
           <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-          <Text style={styles.featureText}>広告視聴なしで全ての野菜の情報が分かる</Text>
+          <Text style={styles.featureText}>広告視聴なしで、全ての野菜・果物の情報が確認し放題！</Text>
         </View>
 
         <View style={styles.featureItem}>
           <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-          <Text style={styles.featureText}>その他、便利な機能を随時追加予定</Text>
+          <Text style={styles.featureText}>その他、便利機能を随時追加予定</Text>
         </View>
       </View>
 
-      <View style={styles.pricingSection}>
-        <Text style={styles.priceLabel}>価格</Text>
-        <View style={styles.priceContainer}>
-          <Text style={styles.price}>¥300</Text>
-          <Text style={styles.period}>/月</Text>
-        </View>
-      </View>
+      {renderSubscriptionDetails()}
 
       <TouchableOpacity
         style={styles.purchaseButton}
         onPress={handlePurchasePress}
       >
-        <Text style={styles.purchaseButtonText}>Pro版を購入</Text>
+        <Text style={styles.purchaseButtonText}>Proモードにする</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -126,24 +153,69 @@ const ProScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 開発用のProステータストグルボタン */}
-      {/* <TouchableOpacity
-        style={styles.debugButton}
-        onPress={handleToggleProStatus}
-      >
-        <Text style={styles.debugButtonText}>
-          {isProUser ? '[開発用] Pro → 無料版に切替' : '[開発用] 無料版 → Proに切替'}
-        </Text>
-      </TouchableOpacity> */}
-
-      <ScrollView>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         {isProUser ? renderProContent() : renderFreeContent()}
+        {/* Admob用の余白 */}
+        <View style={styles.adSpace} />
       </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    // iOSとAndroidで適切な余白を設定
+    paddingBottom: 90 ,
+  },
+  adSpace: {
+    height:50,
+  },
+  subscriptionDetails: {
+    backgroundColor: '#F8F9FA',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 24,
+  },
+  subscriptionDetailTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 16,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  detailLabel: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  detailValue: {
+    fontSize: 16,
+    color: '#1A1A1A',
+    fontWeight: '500',
+  },
+  autoRenewalInfo: {
+    fontSize: 14,
+    color: '#666666',
+    marginTop: 16,
+    lineHeight: 20,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  legalLinkText: {
+    fontSize: 14,
+    color: '#007AFF',
+    textDecorationLine: 'underline',
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',

@@ -68,7 +68,7 @@ export const ProProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsProUser(hasProAccess);
 
       if (hasProAccess) {
-        Alert.alert('成功', 'Pro版の購入が完了しました！');
+        Alert.alert('成功', 'Proモードの購入が完了しました！');
       } else {
         Alert.alert('エラー', '購入処理は完了しましたが、Pro権限が有効になっていません');
       }

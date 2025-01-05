@@ -22,7 +22,7 @@ const App: React.FC = () => {
 
               if (route.name === '野菜価格') {
                 iconName = focused ? 'leaf' : 'leaf-outline';
-              } else if (route.name === 'Pro版') {
+              } else if (route.name === 'Proモード') {
                 iconName = focused ? 'star' : 'star-outline';
               } else if (route.name === 'アプリ説明') {
                 iconName = focused ? 'information-circle' : 'information-circle-outline';
@@ -37,7 +37,7 @@ const App: React.FC = () => {
           })}
         >
           <Tab.Screen name="野菜価格" component={Detail} />
-          <Tab.Screen name="Pro版" component={ProScreen} />
+          <Tab.Screen name="Proモード" component={ProScreen} />
           <Tab.Screen name="アプリ説明" component={AppInfoScreen} />
         </Tab.Navigator>
       </NavigationContainer>
