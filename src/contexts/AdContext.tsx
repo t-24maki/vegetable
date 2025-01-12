@@ -15,6 +15,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import NetInfo from '@react-native-community/netinfo';
+import Constants from 'expo-constants';
 
 // 広告関連の設定
 const AD_CONFIG = {
@@ -33,16 +34,16 @@ const AD_CONFIG = {
     : {
         // 本番環境用の広告ID（実際のIDに置き換える必要があります）
         BANNER: Platform.select({
-          ios: 'ca-app-pub-9406489822776534/4429950234',
-          android: 'YOUR_ANDROID_BANNER_AD_UNIT_ID',
+          ios: Constants.expoConfig?.extra?.adUnitIds?.banner?.ios,
+          android: Constants.expoConfig?.extra?.adUnitIds?.banner?.android,
         }) as string,
         INTERSTITIAL: Platform.select({
-          ios: 'ca-app-pub-9406489822776534/5770952069',
-          android: 'YOUR_ANDROID_INTERSTITIAL_AD_UNIT_ID',
+          ios: Constants.expoConfig?.extra?.adUnitIds?.interstitial?.ios,
+          android: Constants.expoConfig?.extra?.adUnitIds?.interstitial?.android,
         }) as string,
         REWARDED_INTERSTITIAL: Platform.select({
-          ios: 'ca-app-pub-9406489822776534/3718539760',
-          android: 'YOUR_ANDROID_REWARDED_INTERSTITIAL_AD_UNIT_ID',
+          ios: Constants.expoConfig?.extra?.adUnitIds?.rewardedInterstitial?.ios,
+          android: Constants.expoConfig?.extra?.adUnitIds?.rewardedInterstitial?.android,
         }) as string,
       },
 };

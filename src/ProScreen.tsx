@@ -10,7 +10,7 @@ import {
   Linking
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useProStatus } from './ProContext';
+import { useProStatus } from './contexts/ProContext';
 
 const ProScreen: React.FC = () => {
   const { isProUser, purchasePro, restorePurchases } = useProStatus();

@@ -2,11 +2,11 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { AdManagerProvider } from './AdManager';
+import { AdManagerProvider } from './src/contexts/AdContext';
 import Detail from './src/Detail';
 import ProScreen from './src/ProScreen';
 import AppInfoScreen from './src/AppInfoScreen';
-import { ProProvider } from './src/ProContext';
+import { ProProvider } from './src/contexts/ProContext';
 
 const Tab = createBottomTabNavigator();
 

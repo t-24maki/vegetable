@@ -19,11 +19,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import SVGLineChart from './SVGLineChart';
 import { UnlockManager } from './UnlockManager';
-import { useAdManager } from '../AdManager';
+import { useAdManager } from './contexts/AdContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeasonalIndicator from './SeasonalComponent';
 import StorageComponent from './StorageComponent';
-import { useProStatus } from './ProContext';
+import { useProStatus } from './contexts/ProContext';
 
 
 interface PriceData {
@@ -62,8 +62,8 @@ const arrowDownMiddle = require('../assets/arrow-downmiddle.png');
 const arrowDown = require('../assets/arrow-down.png');
 
 const getTrendArrow = (rate: number): ImageSourcePropType => {
-  if (rate > 1.3) return arrowUp;
-  if (rate > 1.1) return arrowUpMiddle;
+  if (rate > 1.5) return arrowUp;
+  if (rate > 1.2) return arrowUpMiddle;
   if (rate > 0.9) return arrowMiddle;
   if (rate > 0.7) return arrowDownMiddle;
   return arrowDown;

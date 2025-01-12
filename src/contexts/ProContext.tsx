@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import Purchases, { CustomerInfo, PurchasesOffering } from 'react-native-purchases';
 import { Alert } from 'react-native';
+import Constants from 'expo-constants';
 
 interface ProContextType {
   isProUser: boolean;
@@ -11,7 +12,11 @@ interface ProContextType {
 
 const ProContext = createContext<ProContextType | undefined>(undefined);
 
-const REVENUE_CAT_API_KEY = 'appl_juQbAHhppckYQbFCCgEEnHypUXX'; // 環境変数から取得することを推奨
+const REVENUE_CAT_CONFIG = {
+  API_KEY: Constants.expoConfig?.extra?.revenueCat?.apiKey,
+  ENTITLEMENT_ID: Constants.expoConfig?.extra?.revenueCat?.entitlementId,
+  MONTHLY_PRICE: Constants.expoConfig?.extra?.revenueCat?.monthlyPrice,
+};
 
 export const ProProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isProUser, setIsProUser] = useState(false);
@@ -20,7 +25,7 @@ export const ProProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // RevenueCatの初期化
   const initializeRevenueCat = async () => {
     try {
-      await Purchases.configure({ apiKey: REVENUE_CAT_API_KEY });
+      await Purchases.configure({ apiKey: REVENUE_CAT_CONFIG.API_KEY });
       await checkProStatus();
     } catch (error) {
       console.error('Failed to initialize RevenueCat:', error);
@@ -34,7 +39,7 @@ export const ProProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const checkProStatus = async () => {
     try {
       const customerInfo = await Purchases.getCustomerInfo();
-      const hasProAccess = customerInfo.entitlements.active['pro'] !== undefined;
+      const hasProAccess = customerInfo.entitlements.active[REVENUE_CAT_CONFIG.ENTITLEMENT_ID] !== undefined;
       setIsProUser(hasProAccess);
     } catch (error) {
       console.error('Failed to check pro status:', error);
@@ -64,7 +69,7 @@ export const ProProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       const { customerInfo } = await Purchases.purchasePackage(offerings.monthly);
-      const hasProAccess = customerInfo.entitlements.active['pro'] !== undefined;
+      const hasProAccess = customerInfo.entitlements.active[REVENUE_CAT_CONFIG.ENTITLEMENT_ID] !== undefined;
       setIsProUser(hasProAccess);
 
       if (hasProAccess) {
@@ -73,7 +78,6 @@ export const ProProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         Alert.alert('エラー', '購入処理は完了しましたが、Pro権限が有効になっていません');
       }
     } catch (error: any) {
-      // ユーザーによるキャンセルの場合は無視
       if (!error.userCancelled) {
         console.error('Failed to purchase:', error);
         Alert.alert('エラー', '購入処理中にエラーが発生しました');
@@ -88,7 +92,7 @@ export const ProProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       setIsLoading(true);
       const customerInfo = await Purchases.restorePurchases();
-      const hasProAccess = customerInfo.entitlements.active['pro'] !== undefined;
+      const hasProAccess = customerInfo.entitlements.active[REVENUE_CAT_CONFIG.ENTITLEMENT_ID] !== undefined;
       setIsProUser(hasProAccess);
 
       if (hasProAccess) {
