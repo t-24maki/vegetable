@@ -95,13 +95,9 @@ const ProScreen: React.FC = () => {
         
         <View style={styles.featureItem}>
           <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-          <Text style={styles.featureText}>広告なしでアプリを利用可能</Text>
+          <Text style={styles.featureText}>広告なしですべての野菜・果物の情報にアクセス可能</Text>
         </View>
 
-        <View style={styles.featureItem}>
-          <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-          <Text style={styles.featureText}>すべての野菜・果物の情報にアクセス可能</Text>
-        </View>
       </View>
 
       {renderSubscriptionDetails()}

@@ -204,14 +204,16 @@ const handleUnlock = async (vegetableName: string) => {
 
   const fetchData = async () => {
     try {
+      const CLOUDFRONT_URL = 'https://dmfbww6k0t6zv.cloudfront.net'; // CloudFrontのドメインを設定
+
       const [priceResponse, rateResponse] = await Promise.all([
-        fetch('https://analysis-navi.com/vegetable/trend.json', {
+        fetch(`${CLOUDFRONT_URL}/trend.json`, {
           headers: {
             'Accept': 'application/json',
             'User-Agent': 'React-Native-App'
           },
         }),
-        fetch('https://analysis-navi.com/vegetable/rate.json', {
+        fetch(`${CLOUDFRONT_URL}/rate.json`, {
           headers: {
             'Accept': 'application/json',
             'User-Agent': 'React-Native-App'
@@ -232,22 +234,28 @@ const handleUnlock = async (vegetableName: string) => {
 
       // rateデータの項目名を動的に取得
       const rateTypes = Object.keys(Object.values(rateJson)[0]);
-      const lastMonthRateKey = rateTypes.find(type => type.includes('先月')) || '';
+      const lastMonthRateKey = rateTypes.find(type => type.includes('直近')) || '';
       const lastYearRateKey = rateTypes.find(type => type.includes('例年') || type.includes('昨年')) || '';
 
-      // 非活性にする野菜のリスト
-      const disabledVegetables = ['レタス', 'にんじん','キャベツ','ねぎ','トマト','きゅうり'];
+      // 非活性にする野菜のリスト（ロックされた状態で表示）
+      const disabledVegetables = ['レタス', 'にんじん', 'だいこん', 'キャベツ', 'ねぎ', 'トマト', 'きゅうり', 'たまねぎ','なす'];
+
+      // 表示する野菜のリスト（アンロック可能な状態で表示）
+      const enabledVegetables = ['いちご', 'みかん', 'ごぼう', 'たけのこ', 'しゅんぎく', 'ちんげんさい', 'バナナ', 'はくさい', 'ばれいしょ', 'かぶ', 'パセリ','アスパラガス','カリフラワー','かぼちゃ'];
 
       // vegListの定義を更新
       const vegList = Object.keys(priceJson)
-      .filter(veg => !hiddenVegetables.includes(veg)) // 非表示項目をフィルタリング
-      .map(veg => ({
-        name: veg,
-        isExpanded: false,
-        lastMonthRate: rateJson[veg]?.[lastMonthRateKey],
-        lastYearRate: rateJson[veg]?.[lastYearRateKey],
-        isDisabled: disabledVegetables.includes(veg)
-      }));
+        .filter(veg => {
+          // enabledVegetablesかdisabledVegetablesのどちらかに含まれているものだけを表示
+          return enabledVegetables.includes(veg) || disabledVegetables.includes(veg);
+        })
+        .map(veg => ({
+          name: veg,
+          isExpanded: false,
+          lastMonthRate: rateJson[veg]?.[lastMonthRateKey],
+          lastYearRate: rateJson[veg]?.[lastYearRateKey],
+          isDisabled: disabledVegetables.includes(veg)
+        }));
 
       // 50音順でソートし、非活性項目を最後に
       const sortedVegList = vegList.sort((a, b) => {
@@ -309,44 +317,53 @@ const handleUnlock = async (vegetableName: string) => {
         case '50音順':
           return replaceItemName(item.name);
         case `${rateTypes.lastMonth}（低い順）`:
-          return -(item.lastMonthRate || 0);
+          return item.lastMonthRate || 0;
         case `${rateTypes.lastMonth}（高い順）`:
-          return (item.lastMonthRate || 0);
+          return item.lastMonthRate || 0;
         case `${rateTypes.lastYear}（低い順）`:
-          return -(item.lastYearRate || 0);
+          return item.lastYearRate || 0;
         case `${rateTypes.lastYear}（高い順）`:
-          return (item.lastYearRate || 0);
+          return item.lastYearRate || 0;
         default:
           return 0;
       }
     };
   
     const sorted = [...vegetables].sort((a, b) => {
-      // 50音順の場合は、ロック状態に関係なく表示名でソート
+      // 50音順の場合
       if (sortOption === '50音順') {
         const aDisplayName = replaceItemName(a.name);
         const bDisplayName = replaceItemName(b.name);
         return aDisplayName.localeCompare(bDisplayName, 'ja');
       }
   
-      // その他のソートの場合は、ロックされた項目を下に
-      const aIsLocked = a.isDisabled && !unlockedVegetables[a.name];
-      const bIsLocked = b.isDisabled && !unlockedVegetables[b.name];
+      // Proモード以外の場合のみ、ロック状態を考慮
+      if (!isProUser) {
+        const aIsLocked = a.isDisabled && !unlockedVegetables[a.name];
+        const bIsLocked = b.isDisabled && !unlockedVegetables[b.name];
   
-      if (aIsLocked !== bIsLocked) {
-        return aIsLocked ? 1 : -1;
+        if (aIsLocked !== bIsLocked) {
+          return aIsLocked ? 1 : -1;
+        }
       }
   
-      // 同じロック状態の項目同士で比較
+      // 値による並び替え
       const aValue = getSortValue(a);
       const bValue = getSortValue(b);
-      return typeof aValue === 'string'
-        ? aValue.localeCompare(bValue as string, 'ja')
-        : (bValue as number) - (aValue as number);
+  
+      // 高い順・低い順の処理
+      if (sortOption.includes('高い順')) {
+        return (bValue as number) - (aValue as number);
+      } else if (sortOption.includes('低い順')) {
+        return (aValue as number) - (bValue as number);
+      }
+  
+      // 50音順（すでに上で処理されているはずだが、念のため）
+      return (aValue as string).localeCompare(bValue as string, 'ja');
     });
   
     setVegetables(sorted);
-  }, [vegetables, unlockedVegetables, sortOption, rateTypes]);
+  }, [vegetables, unlockedVegetables, sortOption, rateTypes, isProUser]); // isProUserを依存配列に追加
 
 
 
@@ -603,6 +620,51 @@ const handleUnlock = async (vegetableName: string) => {
 
 
 const styles = StyleSheet.create({
+
+  ratesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end', // 右寄せを維持
+    flex: 1,
+    marginRight: 10,
+    paddingLeft: 20, // 左側の余白を追加
+  },
+  
+  rateColumn: {
+    alignItems: 'center',
+    width: 80,
+    marginLeft: 10, // 各カラムの左マージンを追加
+  },
+  
+  rateValueContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: 40,
+  },
+  
+  rateHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingRight: 42,
+    marginBottom: 8,
+    marginRight: 10,
+  },
+  
+  rateHeaderColumn: {
+    width: 80,
+    alignItems: 'center',
+    marginLeft: 10, // ヘッダーも同じマージンを適用
+  },
+  
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+  },
   remainingTimeText: {
     fontSize: 12,
     color: '#666666',
@@ -660,13 +722,6 @@ const styles = StyleSheet.create({
   itemContainerExpanded: {
     backgroundColor: '#F8F8F8',
   },
-  itemHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-  },
   chartContainer: {
     padding: 16,
     backgroundColor: '#F8F8F8',
@@ -687,13 +742,6 @@ const styles = StyleSheet.create({
   adSpace: {
     height: 40, // バナー広告の高さ + 追加のパディング
   },
-  ratesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    flex: 1,
-    marginRight: 10,
-  },
   disabledItem: {
     backgroundColor: '#E0E0E0', // より濃い灰色の背景
     opacity: 0.8, // 透明度を少し上げて、よりはっきりと見えるように
@@ -705,18 +753,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  rateColumn: {
-    alignItems: 'center',
-    width: 80,
-    marginHorizontal: 5,
-  },
-  rateValueContainer: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    height: 40,
   },
   rateValue: {
     fontSize: 14,
@@ -737,17 +773,6 @@ const styles = StyleSheet.create({
   },
   disabledArrow: {
     opacity: 0.3,
-  },
-  rateHeaderContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingRight: 50,
-    marginBottom: 8,
-    marginRight: 10,
-  },
-  rateHeaderColumn: {
-    width: 80,
-    alignItems: 'center',
   },
   rateHeaderLabel: {
     fontSize: 12,

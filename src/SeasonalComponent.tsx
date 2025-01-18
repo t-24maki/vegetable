@@ -48,6 +48,36 @@ const seasonalMonthData = {
   
     'ねぎ': [true, true, true, false, false, false, false, false, true, true, true, true],
     // 秋から冬（9-3月）が旬。寒さで甘みが増す
+    
+    'なす': [false, false, false, false, false, true, true, true, true, false, false, false],
+    // 6-9月が旬。真夏が最盛期
+    
+    'ごぼう': [true, true, false, false, false, false, false, false, true, true, true, true],
+    // 9-2月が旬。寒さで甘みが増す
+    
+    'たけのこ': [false, false, true, true, true, false, false, false, false, false, false, false],
+    // 3-5月が旬。春の食材の代表格
+    
+    'しゅんぎく': [true, true, true, false, false, false, false, false, true, true, true, true],
+    // 9-3月が旬。寒さに強い葉物野菜
+    
+    'ちんげんさい': [true, true, true, false, false, false, false, false, true, true, true, true],
+    // 秋から春（9-3月）が旬。暑さに弱い
+    
+    'かぶ': [true, true, false, false, false, false, false, false, true, true, true, true],
+    // 10-2月が旬。寒さで甘みが増す
+    
+    'パセリ': [true, true, true, true, false, false, false, false, true, true, true, true],
+    // 春（3-4月）と秋から冬（9-2月）が旬
+    
+    'アスパラガス': [false, false, false, true, true, true, false, false, false, false, false, false],
+    // 4-6月が旬。春が最盛期
+    
+    'カリフラワー': [true, true, true, false, false, false, false, false, false, true, true, true],
+    // 11-3月が旬。寒さに強い
+    
+    'かぼちゃ': [false, false, false, false, false, false, true, true, true, false, false, false],
+    // 7-9月が旬。夏から秋にかけて収穫
   };
 
   interface SeasonalIndicatorProps {
@@ -72,9 +102,9 @@ const seasonalMonthData = {
 
 const styles = StyleSheet.create({
 shunImage: {
-    width: 40,  // 画像サイズに応じて調整してください
-    height: 40, // 画像サイズに応じて調整してください
-    marginLeft: 3,
+    width: 25,  // 画像サイズに応じて調整してください
+    height: 25, // 画像サイズに応じて調整してください
+    marginLeft: 1,
     },
 });
 

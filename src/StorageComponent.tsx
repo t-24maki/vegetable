@@ -77,7 +77,57 @@ export const storageData: { [key: string]: {
     duration: '5-7日',
     location: '室温',
     tips: '他の果物から離して保存。完熟したら冷蔵可'
-  }
+  },
+  'なす': {
+    duration: '4-5日',
+    location: '冷蔵庫の野菜室',
+    tips: 'ヘタを取らずにポリ袋に入れて保存'
+},
+'ごぼう': {
+    duration: '1週間',
+    location: '冷蔵庫の野菜室',
+    tips: '新聞紙で包み、ポリ袋に入れて保存'
+},
+'たけのこ': {
+    duration: '2-3日',
+    location: '冷蔵庫',
+    tips: 'アク抜き後は水に浸して冷蔵保存'
+},
+'しゅんぎく': {
+    duration: '4-5日',
+    location: '冷蔵庫の野菜室',
+    tips: '根を水で濡らした新聞紙で包んで保存'
+},
+'ちんげんさい': {
+    duration: '4-5日',
+    location: '冷蔵庫の野菜室',
+    tips: '新聞紙で包んで立てて保存'
+},
+'かぶ': {
+    duration: '1週間',
+    location: '冷蔵庫の野菜室',
+    tips: '葉を切り、新聞紙で包んで保存'
+},
+'パセリ': {
+    duration: '1週間',
+    location: '冷蔵庫',
+    tips: '水気を拭き、ラップで包んで保存'
+},
+'アスパラガス': {
+    duration: '4-5日',
+    location: '冷蔵庫',
+    tips: '根元を湿らせた紙で包み、立てて保存'
+},
+'カリフラワー': {
+    duration: '4-5日',
+    location: '冷蔵庫の野菜室',
+    tips: 'ラップで包んで保存'
+},
+'かぼちゃ': {
+    duration: '1-2ヶ月',
+    location: '冷暗所',
+    tips: 'カットしたものは冷蔵で3-4日'
+}
 };
 
 interface StorageComponentProps {

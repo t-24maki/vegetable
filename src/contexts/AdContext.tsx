@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import NetInfo from '@react-native-community/netinfo';
 import Constants from 'expo-constants';
+import { useProStatus } from './ProContext';
 
 // 広告関連の設定
 const AD_CONFIG = {
@@ -85,6 +86,8 @@ export const AdManagerProvider: React.FC<AdManagerProviderProps> = ({ children }
   const trackingAuthorized = useRef(false);
   const interstitial = useRef<InterstitialAd | null>(null);
   const rewardedInterstitial = useRef<RewardedInterstitialAd | null>(null);
+
+  const { isProUser } = useProStatus();
 
 // ATT要求を別関数として分離
 const requestATTPermission = async () => {
@@ -437,6 +440,11 @@ useEffect(() => {
 
   // バナー広告のレンダリング
   const renderBannerAd = useMemo(() => {
+
+    if (isProUser) {
+      return null;
+    }
+
     return (
       <View 
         accessible={true}
