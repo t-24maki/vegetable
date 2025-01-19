@@ -2,7 +2,7 @@
   "expo": {
     "name": "野菜価格",
     "slug": "vegetable",
-    "version": "1.0.5",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon_1016.png",
     "userInterfaceStyle": "light",

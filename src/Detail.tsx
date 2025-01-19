@@ -24,6 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import SeasonalIndicator from './SeasonalComponent';
 import StorageComponent from './StorageComponent';
 import { useProStatus } from './contexts/ProContext';
+import Constants from 'expo-constants';
 
 
 interface PriceData {
@@ -204,7 +205,7 @@ const handleUnlock = async (vegetableName: string) => {
 
   const fetchData = async () => {
     try {
-      const CLOUDFRONT_URL = 'https://dmfbww6k0t6zv.cloudfront.net'; // CloudFrontのドメインを設定
+      const CLOUDFRONT_URL = Constants.expoConfig.extra.cloudFrontUrl;
 
       const [priceResponse, rateResponse] = await Promise.all([
         fetch(`${CLOUDFRONT_URL}/trend.json`, {

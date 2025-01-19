@@ -28,7 +28,9 @@ const SVGLineChart: React.FC<SVGLineChartProps> = ({ data, width, height, paddin
     const yRange = yMaxRaw - yMinRaw;
 
     let yTickInterval: number;
-    if (yRange >= 2000) {
+    if (yRange >= 4000) {
+      yTickInterval = 1000;
+    } else if (yRange >= 2000) {
       yTickInterval = 500;
     } else if (yRange >= 1500) {
       yTickInterval = 200;
@@ -185,7 +187,7 @@ const SVGLineChart: React.FC<SVGLineChartProps> = ({ data, width, height, paddin
         <G rotation="-90" origin={`${padding-20}, ${height / 2}`}>
           <SvgText
             x={padding-20}
-            y={height / 2}
+            y={height /2.1}
             fontSize="12"
             fill="#546E7A"
             textAnchor="middle"
