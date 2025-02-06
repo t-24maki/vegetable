@@ -205,16 +205,17 @@ const handleUnlock = async (vegetableName: string) => {
 
   const fetchData = async () => {
     try {
-      const CLOUDFRONT_URL = Constants.expoConfig.extra.cloudFrontUrl;
-
+      // CloudFrontのURLをS3のURLに変更
+      const S3_BUCKET_URL = Constants.expoConfig.extra.s3BucketUrl;
+  
       const [priceResponse, rateResponse] = await Promise.all([
-        fetch(`${CLOUDFRONT_URL}/trend.json`, {
+        fetch(`${S3_BUCKET_URL}/trend.json`, {
           headers: {
             'Accept': 'application/json',
             'User-Agent': 'React-Native-App'
           },
         }),
-        fetch(`${CLOUDFRONT_URL}/rate.json`, {
+        fetch(`${S3_BUCKET_URL}/rate.json`, {
           headers: {
             'Accept': 'application/json',
             'User-Agent': 'React-Native-App'
